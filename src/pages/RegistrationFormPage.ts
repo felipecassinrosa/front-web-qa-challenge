@@ -25,13 +25,15 @@ export class RegistrationFormPage extends BasePage {
   constructor(page: Page) {
     super(page);
     this.form = page.getByTestId('registration-form');
-    this.fullNameInput = this.form.getByLabel(/Full Name/i);
-    this.emailInput = this.form.getByLabel(/Email Address/i);
-    this.passwordInput = this.form.getByLabel(/Password/i);
-    this.phoneInput = this.form.getByLabel(/Phone Number/i);
-    this.dobInput = this.form.getByLabel(/Date of Birth/i);
-    this.countrySelect = this.form.getByLabel(/Country/i);
-    this.bioTextarea = this.form.getByLabel(/Bio/i);
+    // Regex ancorada no início: evita colisão com nomes acessíveis que contêm o mesmo termo
+    // (ex.: /Password/i também casaria com o botão "Toggle password visibility").
+    this.fullNameInput = this.form.getByLabel(/^Full Name/);
+    this.emailInput = this.form.getByLabel(/^Email Address/);
+    this.passwordInput = this.form.getByLabel(/^Password/);
+    this.phoneInput = this.form.getByLabel(/^Phone Number/);
+    this.dobInput = this.form.getByLabel(/^Date of Birth/);
+    this.countrySelect = this.form.getByLabel(/^Country/);
+    this.bioTextarea = this.form.getByLabel(/^Bio/);
     this.charCount = this.form.getByTestId('char-count');
     this.termsCheckbox = this.form.getByTestId('check-terms');
     this.registerButton = this.form.getByRole('button', { name: 'Register', exact: true });

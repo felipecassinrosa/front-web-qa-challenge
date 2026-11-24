@@ -56,7 +56,8 @@ export class DynamicComponentsPage extends BasePage {
     const records: DynamicTableRecord[] = [];
 
     for (let rowIndex = 0; rowIndex < rowCount; rowIndex++) {
-      const cells = await this.dynamicFruitRows.nth(rowIndex).locator('td').allInnerTexts();
+      // textContent (e não innerText) para não sofrer efeito de text-transform do CSS.
+      const cells = await this.dynamicFruitRows.nth(rowIndex).locator('td').allTextContents();
       const record: DynamicTableRecord = {};
       headers.forEach((header, colIndex) => {
         record[header] = (cells[colIndex] ?? '').trim();

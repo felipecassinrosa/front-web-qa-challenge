@@ -3,26 +3,24 @@ import { BasePage } from './BasePage';
 
 export class ResponsivePage extends BasePage {
   readonly hamburgerButton: Locator;
+  readonly firstNavLink: Locator;
   readonly desktopOnlyBox: Locator;
   readonly tabletOnlyBox: Locator;
   readonly mobileOnlyBox: Locator;
   readonly alwaysVisibleBox: Locator;
   readonly breakpointLabel: Locator;
-  readonly demoCard1: Locator;
-  readonly demoCard2: Locator;
-  readonly demoCard3: Locator;
+  readonly demoCards: Locator;
 
   constructor(page: Page) {
     super(page);
-    this.hamburgerButton = page.locator('#hamburger');
+    this.hamburgerButton = page.getByRole('button', { name: 'Toggle menu' });
+    this.firstNavLink = page.getByRole('navigation').getByRole('link', { name: 'Locators' });
     this.desktopOnlyBox = page.getByTestId('desktop-only');
     this.tabletOnlyBox = page.getByTestId('tablet-only');
     this.mobileOnlyBox = page.getByTestId('mobile-only');
     this.alwaysVisibleBox = page.getByTestId('always-visible');
     this.breakpointLabel = page.getByTestId('breakpoint-label');
-    this.demoCard1 = page.getByTestId('resp-item-1');
-    this.demoCard2 = page.getByTestId('resp-item-2');
-    this.demoCard3 = page.getByTestId('resp-item-3');
+    this.demoCards = page.getByTestId('responsive-demo-grid').locator('[data-testid^="resp-item-"]');
   }
 
   async openSection(): Promise<void> {
