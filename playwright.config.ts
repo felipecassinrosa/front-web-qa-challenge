@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import dotenv from 'dotenv';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const BASE_URL = process.env.BASE_URL || 'https://playwrightlab.github.io/';
 const isCI = !!process.env.CI;
