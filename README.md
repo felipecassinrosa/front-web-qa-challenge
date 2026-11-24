@@ -137,12 +137,12 @@ Toda execução gera um **relatório HTML** (`playwright-report/`). Em cada test
 | Evidência | Quando | Onde é configurada |
 |---|---|---|
 | Passos do teste (`test.step`) com o tempo de cada um | Sempre | Specs |
-| **Print do estado validado** (ex.: `evidencia-tabela-apos-exclusao`, `evidencia-cadastro-sucesso`, `evidencia-menu-mobile-aberto`) | Sempre, logo depois das asserções do passo. Se o print do componente não sair em 5 s, registra a tela visível com uma nota: a evidência nunca reprova o teste | `src/utils/evidence.ts` |
+| **Print do estado validado** (ex.: `evidencia-tabela-apos-exclusao`, `evidencia-cadastro-sucesso`, `evidencia-menu-mobile-aberto`) | Sempre, logo depois das asserções do passo. Se o print do componente não sair em 5 s, registra a tela visível com uma nota: a evidência nunca reprova o teste. No print de componente, a barra de navegação e o banner de cookies (fixos) são ocultados, porque apareceriam fora do lugar, no meio da imagem | `src/utils/evidence.ts` |
 | Screenshot do fim do teste | Sempre | `playwright.config.ts` (`screenshot: 'on'`) |
 | **Logs do navegador** (`browser-logs.txt`): erros de console, exceções da página, requisições com falha e respostas HTTP ≥ 400 | Sempre (registra também quando não houve erro) | Fixture automática `browserLogs` em `src/fixtures/test.fixtures.ts` |
 | Auditorias axe-core (`axe-registration-form.json`, `axe-full-page.json`) e anotação com as violações conhecidas | `A11Y-01` | `src/utils/a11y.helper.ts` |
 | Trace (linha do tempo com DOM, rede e console de cada ação) | Em falha, incluindo a tentativa que falhou de um teste instável. Com `PW_TRACE=on` (ou o input `trace` do disparo manual), de todos os testes | `playwright.config.ts` |
-| Vídeo | Só em falha (é o artefato mais pesado) | `playwright.config.ts` |
+| Vídeo | Só na nova tentativa (retry) de um teste que falhou | `playwright.config.ts` |
 
 Para abrir o relatório HTML localmente:
 
@@ -241,7 +241,12 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
 - **Leituras em lote só depois de um estado confirmado:** antes de ler uma coluna inteira (`getColumnValues`, `readDynamicTableRecords`), o teste espera a contagem de linhas com `toHaveCount`, para não ler a tabela no meio de uma atualização.
 - **Sem asserções sobre aleatoriedade:** a Dynamic Table embaralha colunas e linhas a cada carga, mas o teste não exige que a ordem mude após o reload (o sorteio pode repetir a ordem e geraria falha intermitente). Ele valida as regras que não mudam: fruta → cor/estação e faixas numéricas.
 - **Verificação de estabilidade:** a suíte foi executada com `--repeat-each=3` (39/39 aprovados) antes da entrega.
-- **Instabilidade real encontrada no CI e corrigida:** numa execução, o `FRM-E2E-01` falhou no iPhone e passou no retry. O trace da tentativa que falhou mostrou a mensagem de sucesso parada na tela, mas o WebKit do runner levou ~7 s só para rolar até ela, e o print de evidência estourou o tempo esperando o elemento estabilizar. A evidência, que é diagnóstico, estava reprovando um teste cujas asserções já tinham passado. O helper passou a ter tempo-limite próprio e, se o print do componente não sair, registra a tela visível com uma nota.
+- **Instabilidade real encontrada no CI e corrigida:** o `FRM-E2E-01` falhou na 1ª tentativa no WebKit (desktop e iPhone) em 3 de 4 execuções e passou no retry. A investigação usou os traces das tentativas que falharam e as durações registradas no relatório:
+  - as ações que exigem elemento estável (`check`, `click`, print de elemento) levavam de 2 a 7 s; os `fill`, menos de 0,3 s;
+  - a hipótese de o banner de cookies cobrir os botões foi testada e descartada: os logs não mostram nenhuma nova tentativa por elemento coberto;
+  - o mesmo teste levava de 27 a 40 s na 1ª tentativa e ~14 s no retry, que roda quase sozinho. A causa era disputa de CPU: 2 workers WebKit gravando vídeo e screencast num runner de 2 vCPUs (repositório privado — confirmado no log do job).
+
+  Correções: 1 worker por job no CI (o paralelismo já acontece entre os jobs de cada navegador), vídeo só no retry e evidência com tempo-limite próprio, que nunca reprova o teste. Na execução seguinte, os 13 testes passaram de primeira, com o `FRM-E2E-01` em ~13 s no WebKit.
 - Timeouts globais configurados centralmente em `playwright.config.ts` (`timeout: 30s`, `expect: 10s`, `actionTimeout: 10s`).
 
 ---
@@ -258,7 +263,7 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
 ## 15. Decisões técnicas
 
 - **Playwright + TypeScript:** escolhido por oferecer auto-waiting nativo, execução multi-engine (Chromium/WebKit) sem drivers externos, Trace Viewer rico para diagnóstico e tipagem estrita.
-- **Chromium completo + WebKit `@smoke` + Mobile Safari `@mobile`:** trade-off consciente que entrega validação cross-engine e mobile iOS mantendo o tempo de CI enxuto e respeitando a restrição de não sobrecarregar a aplicação com paralelismo excessivo (`workers: 2` em CI).
+- **Chromium completo + WebKit `@smoke` + Mobile Safari `@mobile`:** trade-off consciente que entrega validação cross-engine e mobile iOS mantendo o tempo de CI enxuto e respeitando a restrição de não sobrecarregar a aplicação com paralelismo excessivo (1 worker por job no CI; os 3 navegadores rodam em jobs paralelos).
 - **Seleção dos cenários:** 5 testes de núcleo (um por item obrigatório do enunciado) e 3 complementares para os maiores riscos restantes — ver a seção 3.
 - **O que não automatizar em E2E:** combinações exaustivas de regras de campo (melhor cobertas em testes unitários/componente), regras garantidas pelo próprio HTML (`disabled`, `maxlength`), chamadas reais a APIs de terceiros sem mock (`jsonplaceholder`), seções secundárias fora do domínio administrativo (Shopping, Media, Carousel) e validações manuais de tecnologia assistiva.
 - **Gate de acessibilidade só em violação crítica, e só no formulário:** a aplicação já tem violações na tabela e no contraste. Barrar tudo deixaria a suíte sempre vermelha; ignorar esconderia os problemas. A auditoria da página inteira vai para o relatório como evidência.
@@ -298,7 +303,7 @@ Em conformidade com a transparência solicitada no desafio:
   - A documentação descrevia como "Coberto" cenários que ainda não existiam.
   - Ao enxugar o `A11Y-01`, a IA propôs remover a checagem manual de labels por considerá-la redundante com o axe. O teste de mutação (remover o `for` de um label) mostrou que o axe não detecta o problema quando o campo tem placeholder; a checagem foi mantida.
   - A configuração inicial só gerava screenshot e trace em falha: uma execução verde não deixava evidência visual do que foi validado. Passou a anexar um print do estado final em todo teste.
-  - A primeira versão desse helper de evidência podia reprovar o teste: no WebKit mobile do CI, o print da mensagem de sucesso estourou o tempo esperando o elemento estabilizar, e o `FRM-E2E-01` ficou instável (passou no retry). A causa foi encontrada no trace da tentativa que falhou, dentro do relatório do CI, e o helper passou a nunca reprovar o teste (seção 13).
+  - A primeira versão desse helper de evidência podia reprovar o teste, e o primeiro diagnóstico do flaky que apareceu no CI ficou incompleto: corrigir só o print não resolveu, e o teste voltou a falhar por tempo esgotado. A causa real (disputa de CPU no runner) só apareceu medindo a duração de cada tentativa no relatório. A hipótese do banner de cookies também foi levantada e descartada pelos logs (seção 13).
 - **Outros ajustes:** durante o setup inicial, o TypeScript 7 rejeitou opções legadas (`moduleResolution: "Node"` e `baseUrl`), exigindo ajuste para `module: "ESNext"` + `moduleResolution: "Bundler"` e paths relativos; além disso, a varredura `axe-core` revelou que a aplicação possui violações pré-existentes, levando à decisão de bloquear apenas violações críticas no formulário e anexar o diagnóstico completo da página como evidência.
 - **Decisões técnicas autorais:** escolha da estrutura em repositório isolado, estratégia multi-engine (`Chromium` completo + `WebKit` `@smoke` + `iPhone 13` `@mobile`), priorização dos 8 cenários, decisão de bloquear apenas violações críticas de acessibilidade, de não afirmar aleatoriedade na Dynamic Table e organização incremental de commits por domínio.
 
