@@ -1,5 +1,6 @@
 import { DELAYED_DROPDOWN_SEED } from '@data/userData.factory';
 import { expect, test } from '@fixtures/test.fixtures';
+import { attachEvidence } from '@utils/evidence';
 
 test.describe('Componentes Assíncronos — Delayed Dropdown', () => {
   test(
@@ -44,6 +45,7 @@ test.describe('Componentes Assíncronos — Delayed Dropdown', () => {
         await expect(dynamic.delayedDropdownResult).toHaveText(
           `Selected: ${DELAYED_DROPDOWN_SEED.categoryToSelect}`,
         );
+        await attachEvidence('dropdown-opcao-selecionada', dynamic.delayedDropdownCard);
       });
     },
   );

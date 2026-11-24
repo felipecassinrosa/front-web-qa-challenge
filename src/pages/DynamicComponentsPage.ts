@@ -9,6 +9,7 @@ export class DynamicComponentsPage extends BasePage {
   readonly delayedCategorySelect: Locator;
   readonly delayedDropdownLoader: Locator;
   readonly delayedDropdownResult: Locator;
+  readonly delayedDropdownCard: Locator;
 
   // Dynamic Table (seção #tables -> Dynamic Table)
   readonly dynamicFruitTable: Locator;
@@ -21,6 +22,7 @@ export class DynamicComponentsPage extends BasePage {
     this.delayedCategorySelect = page.getByLabel('Select Category');
     this.delayedDropdownLoader = page.getByTestId('delayed-dropdown-loader');
     this.delayedDropdownResult = page.getByTestId('delayed-dropdown-result');
+    this.delayedDropdownCard = page.getByTestId('delayed-dropdown-card');
 
     this.dynamicFruitTable = page.getByTestId('dynamic-fruit-table');
     this.dynamicFruitHeaders = this.dynamicFruitTable.locator('thead th');

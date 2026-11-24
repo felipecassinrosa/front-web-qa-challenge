@@ -10,6 +10,7 @@ export class ResponsivePage extends BasePage {
   readonly alwaysVisibleBox: Locator;
   readonly breakpointLabel: Locator;
   readonly demoCards: Locator;
+  readonly responsiveCard: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -20,6 +21,7 @@ export class ResponsivePage extends BasePage {
     this.mobileOnlyBox = page.getByTestId('mobile-only');
     this.alwaysVisibleBox = page.getByTestId('always-visible');
     this.breakpointLabel = page.getByTestId('breakpoint-label');
+    this.responsiveCard = page.getByTestId('responsive-card');
     this.demoCards = page.getByTestId('responsive-demo-grid').locator('[data-testid^="resp-item-"]');
   }
 

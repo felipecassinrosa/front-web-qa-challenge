@@ -1,4 +1,5 @@
 import { expect, test } from '@fixtures/test.fixtures';
+import { attachEvidence } from '@utils/evidence';
 
 test.describe('Responsividade — layout em resolução mobile', () => {
   test(
@@ -17,6 +18,7 @@ test.describe('Responsividade — layout em resolução mobile', () => {
 
         await responsive.hamburgerButton.click();
         await expect(responsive.firstNavLink).toBeVisible();
+        await attachEvidence('menu-mobile-aberto', page);
 
         await responsive.hamburgerButton.click();
         await expect(responsive.firstNavLink).toBeHidden();
@@ -28,6 +30,7 @@ test.describe('Responsividade — layout em resolução mobile', () => {
         await expect(responsive.alwaysVisibleBox).toBeVisible();
         await expect(responsive.desktopOnlyBox).toBeHidden();
         await expect(responsive.tabletOnlyBox).toBeHidden();
+        await attachEvidence('layout-mobile', responsive.responsiveCard);
       });
 
       await test.step('Validar que os cards empilham verticalmente sem sobreposição (RSP-03)', async () => {

@@ -4,6 +4,7 @@ import {
   buildValidRegistrationUser,
 } from '@data/userData.factory';
 import { expect, test } from '@fixtures/test.fixtures';
+import { attachEvidence } from '@utils/evidence';
 
 test.describe('Formulário de Cadastro — Registration Form', () => {
   test(
@@ -38,6 +39,7 @@ test.describe('Formulário de Cadastro — Registration Form', () => {
         await expect(form.successBanner).toHaveText(REGISTRATION_MESSAGES.success);
         // Após o sucesso o PlayLab substitui o formulário pela mensagem de confirmação.
         await expect(form.form).toBeHidden();
+        await attachEvidence('cadastro-sucesso', form.successBanner);
       });
     },
   );
@@ -75,6 +77,7 @@ test.describe('Formulário de Cadastro — Registration Form', () => {
         await expect(form.termsError).toHaveText(REGISTRATION_MESSAGES.termsRequired);
         await expect(form.successBanner).toBeHidden();
         await expect(form.form).toBeVisible();
+        await attachEvidence('mensagens-de-validacao', form.form);
       });
     },
   );

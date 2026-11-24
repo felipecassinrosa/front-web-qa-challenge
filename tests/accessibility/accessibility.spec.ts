@@ -1,4 +1,5 @@
 import { expect, test } from '@fixtures/test.fixtures';
+import { attachEvidence } from '@utils/evidence';
 import { runAccessibilityAudit } from '@utils/a11y.helper';
 
 test.describe('Acessibilidade — teclado, ARIA e auditoria automatizada', () => {
@@ -75,6 +76,7 @@ test.describe('Acessibilidade — teclado, ARIA e auditoria automatizada', () =>
         await expect(a11y.focusTrapInput).toBeFocused();
         await page.keyboard.press('Shift+Tab');
         await expect(a11y.focusTrapCloseButton).toBeFocused();
+        await attachEvidence('focus-trap-aberto', a11y.ariaCard);
 
         // Sem armadilha de teclado: Escape fecha o diálogo e devolve o foco a quem o abriu.
         await page.keyboard.press('Escape');

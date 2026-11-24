@@ -1,5 +1,6 @@
 import { DYNAMIC_FRUIT_TABLE_RULES } from '@data/userData.factory';
 import { expect, test } from '@fixtures/test.fixtures';
+import { attachEvidence } from '@utils/evidence';
 import type { DynamicTableRecord } from '@pages/DynamicComponentsPage';
 
 const { expectedColumns, fruits, ranges } = DYNAMIC_FRUIT_TABLE_RULES;
@@ -48,6 +49,7 @@ test.describe('Componentes Dinâmicos — Dynamic Table', () => {
         expect([...headers].sort()).toEqual([...expectedColumns].sort());
 
         expectRecordsToFollowBusinessRules(await dynamic.readDynamicTableRecords());
+        await attachEvidence('tabela-dinamica-primeira-carga', dynamic.dynamicFruitTable);
       });
 
       await test.step('Recarregar a página e validar que as regras continuam válidas', async () => {
@@ -60,6 +62,7 @@ test.describe('Componentes Dinâmicos — Dynamic Table', () => {
         // Não afirmamos que a ordem mudou: o embaralhamento é aleatório e pode repetir a ordem
         // anterior, o que tornaria essa asserção instável sem comprovar nenhum comportamento.
         expectRecordsToFollowBusinessRules(await dynamic.readDynamicTableRecords());
+        await attachEvidence('tabela-dinamica-apos-reload', dynamic.dynamicFruitTable);
       });
     },
   );

@@ -3,6 +3,7 @@ import { BasePage } from './BasePage';
 
 export class AccessibilityPage extends BasePage {
   readonly section: Locator;
+  readonly ariaCard: Locator;
   readonly expandButton: Locator;
   readonly expandContent: Locator;
   readonly focusTrapOpenButton: Locator;
@@ -16,6 +17,7 @@ export class AccessibilityPage extends BasePage {
   constructor(page: Page) {
     super(page);
     this.section = page.locator('#a11y');
+    this.ariaCard = this.section.getByTestId('aria-card');
     this.expandButton = this.section.getByRole('button', { name: 'Toggle Panel' });
     this.expandContent = this.section.getByRole('region', { name: 'Expandable panel' });
     this.focusTrapOpenButton = this.section.getByRole('button', { name: 'Open Focus Trap' });

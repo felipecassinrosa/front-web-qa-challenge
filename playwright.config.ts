@@ -30,8 +30,11 @@ export default defineConfig({
     baseURL: BASE_URL,
     actionTimeout: 10_000,
     navigationTimeout: 20_000,
-    trace: 'retain-on-failure',
-    screenshot: 'only-on-failure',
+    // Evidências: screenshot ao fim de todo teste (passando ou falhando); trace sempre no CI,
+    // para que o relatório da pipeline permita inspecionar qualquer execução, e só em falha
+    // localmente; vídeo apenas em falha, por ser o artefato mais pesado.
+    trace: isCI ? 'on' : 'retain-on-failure',
+    screenshot: 'on',
     video: 'retain-on-failure',
     locale: 'pt-BR',
   },

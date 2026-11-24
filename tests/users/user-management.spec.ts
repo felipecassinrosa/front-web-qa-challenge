@@ -1,5 +1,6 @@
 import { USERS_TABLE_SEED } from '@data/userData.factory';
 import { expect, test } from '@fixtures/test.fixtures';
+import { attachEvidence } from '@utils/evidence';
 
 test.describe('Tabela de Usuários — Gerenciamento de Usuários', () => {
   test(
@@ -77,6 +78,7 @@ test.describe('Tabela de Usuários — Gerenciamento de Usuários', () => {
         await expect(usersTablePage.tableInfo).toContainText(
           `of ${USERS_TABLE_SEED.initialTotalEntries - 1} entries`,
         );
+        await attachEvidence('tabela-apos-exclusao', usersTablePage.card);
       });
     },
   );
@@ -93,6 +95,7 @@ test.describe('Tabela de Usuários — Gerenciamento de Usuários', () => {
         await expect(usersTablePage.table).toBeVisible();
         // Achado documentado em RSK-U01: o PlayLab exibe "Showing 1-0 of 0 entries" sem mensagem de empty state.
         await expect(usersTablePage.tableInfo).toContainText('of 0 entries');
+        await attachEvidence('busca-sem-resultado', usersTablePage.card);
       });
 
       await test.step('Limpar busca e confirmar recuperação da listagem padrão', async () => {
