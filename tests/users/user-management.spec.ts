@@ -17,15 +17,17 @@ test.describe('Tabela de Usuários — Gerenciamento de Usuários', () => {
         expect(headers).toEqual(USERS_TABLE_SEED.expectedHeaders);
       });
 
-      await test.step('Pesquisar por usuário existente e validar dados e status', async () => {
+      await test.step('Pesquisar por usuário existente e validar dados e situação', async () => {
         const { name, email, role, status } = USERS_TABLE_SEED.existingUser;
         await usersTablePage.searchUser(name);
 
         await expect(usersTablePage.rows).toHaveCount(1);
         const userRow = usersTablePage.getRowByText(name);
-        await expect(userRow).toContainText(email);
-        await expect(userRow).toContainText(role);
-        await expect(userRow).toContainText(status);
+        // Asserção exata por coluna: `toContainText('active')` na linha também aceitaria "inactive".
+        await expect(await usersTablePage.getCell(userRow, 'Name')).toHaveText(name);
+        await expect(await usersTablePage.getCell(userRow, 'Email')).toHaveText(email);
+        await expect(await usersTablePage.getCell(userRow, 'Role')).toHaveText(role);
+        await expect(await usersTablePage.getCell(userRow, 'Status')).toHaveText(status);
 
         await usersTablePage.clearSearch();
         await expect(usersTablePage.rows).toHaveCount(USERS_TABLE_SEED.defaultRowsPerPage);
@@ -36,7 +38,9 @@ test.describe('Tabela de Usuários — Gerenciamento de Usuários', () => {
         await expect(usersTablePage.tableInfo).toContainText(
           `Showing 6-10 of ${USERS_TABLE_SEED.initialTotalEntries} entries`,
         );
-        await expect(usersTablePage.rows.first()).toContainText(USERS_TABLE_SEED.pageTwoFirstUser);
+        await expect(await usersTablePage.getCell(usersTablePage.rows.first(), 'Name')).toHaveText(
+          USERS_TABLE_SEED.pageTwoFirstUser,
+        );
 
         await usersTablePage.goToPage(1);
         await expect(usersTablePage.tableInfo).toContainText(
@@ -44,26 +48,32 @@ test.describe('Tabela de Usuários — Gerenciamento de Usuários', () => {
         );
       });
 
-      let firstUserDescending = '';
+      await test.step('Ordenar usuários por nome e validar a ordem de todos os registros', async () => {
+        const firstNameCell = await usersTablePage.getCell(usersTablePage.rows.first(), 'Name');
 
-      await test.step('Ordenar usuários por nome (ascendente e descendente)', async () => {
+        // A ordem padrão (por ID) já é alfabética na página 1, então validar apenas o ASC seria um
+        // falso positivo. A prova de que a ordenação funciona é a transição ASC → DESC.
         await usersTablePage.sortByName();
-        const namesAsc = await usersTablePage.getColumnValues('Name');
-        const expectedAsc = [...namesAsc].sort((a, b) => a.localeCompare(b));
-        expect(namesAsc).toEqual(expectedAsc);
+        await expect(firstNameCell).toHaveText(USERS_TABLE_SEED.firstUserAlphabetically);
 
         await usersTablePage.sortByName();
+        await expect(firstNameCell).toHaveText(USERS_TABLE_SEED.lastUserAlphabetically);
+
+        // Exibe todos os registros para validar a ordenação global, e não só a da página visível.
+        await usersTablePage.setRowsPerPage(USERS_TABLE_SEED.maxRowsPerPage);
+        await expect(usersTablePage.rows).toHaveCount(USERS_TABLE_SEED.initialTotalEntries);
+
         const namesDesc = await usersTablePage.getColumnValues('Name');
         const expectedDesc = [...namesDesc].sort((a, b) => b.localeCompare(a));
         expect(namesDesc).toEqual(expectedDesc);
-        expect(namesDesc[0]).not.toEqual(namesAsc[0]);
-
-        firstUserDescending = namesDesc[0];
       });
 
-      await test.step('Executar ação de exclusão e validar atualização da tabela', async () => {
-        await usersTablePage.deleteUserByName(firstUserDescending);
-        await expect(usersTablePage.getRowByText(firstUserDescending)).toHaveCount(0);
+      await test.step('Excluir usuário e validar atualização da tabela', async () => {
+        const userToDelete = USERS_TABLE_SEED.lastUserAlphabetically;
+        await usersTablePage.deleteUserByName(userToDelete);
+
+        await expect(usersTablePage.getRowByText(userToDelete)).toHaveCount(0);
+        await expect(usersTablePage.rows).toHaveCount(USERS_TABLE_SEED.initialTotalEntries - 1);
         await expect(usersTablePage.tableInfo).toContainText(
           `of ${USERS_TABLE_SEED.initialTotalEntries - 1} entries`,
         );

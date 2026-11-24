@@ -45,6 +45,10 @@ export class UsersTablePage extends BasePage {
     await this.roleFilterSelect.selectOption(role);
   }
 
+  async setRowsPerPage(rowsPerPage: number): Promise<void> {
+    await this.rowsPerPageSelect.selectOption(String(rowsPerPage));
+  }
+
   async sortByName(): Promise<void> {
     await this.sortNameHeader.click();
   }
@@ -64,27 +68,44 @@ export class UsersTablePage extends BasePage {
 
   async getHeaderLabels(): Promise<string[]> {
     const rawHeaders = await this.headers.allTextContents();
-    return rawHeaders.map((header) => header.replace(/[↕↑↓]/g, '').trim()).filter(Boolean);
+    return rawHeaders.map(normalizeHeader).filter(Boolean);
+  }
+
+  /**
+   * Resolve a célula de uma coluna pelo texto do cabeçalho (e não por índice fixo),
+   * permitindo asserções web-first exatas sobre o valor de um campo da linha.
+   */
+  async getCell(row: Locator, columnName: string): Promise<Locator> {
+    const columnIndex = await this.getColumnIndex(columnName);
+    return row.locator('td').nth(columnIndex);
   }
 
   async getColumnValues(columnName: string): Promise<string[]> {
-    const rawHeaders = await this.headers.allTextContents();
-    const columnIndex = rawHeaders.findIndex((header) =>
-      header.toLowerCase().includes(columnName.toLowerCase()),
-    );
-
-    if (columnIndex === -1) {
-      throw new Error(`Coluna "${columnName}" não encontrada nos cabeçalhos: ${rawHeaders.join(', ')}`);
-    }
-
+    const columnIndex = await this.getColumnIndex(columnName);
     const rowCount = await this.rows.count();
     const values: string[] = [];
 
     for (let i = 0; i < rowCount; i++) {
-      const cellText = await this.rows.nth(i).locator('td').nth(columnIndex).innerText();
-      values.push(cellText.trim());
+      const cellText = await this.rows.nth(i).locator('td').nth(columnIndex).textContent();
+      values.push((cellText ?? '').trim());
     }
 
     return values;
   }
+
+  private async getColumnIndex(columnName: string): Promise<number> {
+    // Mantém a coluna vazia do checkbox para que o índice do <th> corresponda ao índice do <td>.
+    const headers = (await this.headers.allTextContents()).map(normalizeHeader);
+    const columnIndex = headers.findIndex((header) => header.toLowerCase() === columnName.toLowerCase());
+
+    if (columnIndex === -1) {
+      throw new Error(`Coluna "${columnName}" não encontrada nos cabeçalhos: ${headers.join(', ')}`);
+    }
+
+    return columnIndex;
+  }
+}
+
+function normalizeHeader(header: string): string {
+  return header.replace(/[↕↑↓]/g, '').trim();
 }
