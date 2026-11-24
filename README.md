@@ -137,11 +137,11 @@ Toda execução gera um **relatório HTML** (`playwright-report/`). Em cada test
 | Evidência | Quando | Onde é configurada |
 |---|---|---|
 | Passos do teste (`test.step`) com o tempo de cada um | Sempre | Specs |
-| **Print do estado validado** (ex.: `evidencia-tabela-apos-exclusao`, `evidencia-cadastro-sucesso`, `evidencia-menu-mobile-aberto`) | Sempre, logo depois das asserções do passo | `src/utils/evidence.ts` |
+| **Print do estado validado** (ex.: `evidencia-tabela-apos-exclusao`, `evidencia-cadastro-sucesso`, `evidencia-menu-mobile-aberto`) | Sempre, logo depois das asserções do passo. Se o print do componente não sair em 5 s, registra a tela visível com uma nota: a evidência nunca reprova o teste | `src/utils/evidence.ts` |
 | Screenshot do fim do teste | Sempre | `playwright.config.ts` (`screenshot: 'on'`) |
 | **Logs do navegador** (`browser-logs.txt`): erros de console, exceções da página, requisições com falha e respostas HTTP ≥ 400 | Sempre (registra também quando não houve erro) | Fixture automática `browserLogs` em `src/fixtures/test.fixtures.ts` |
 | Auditorias axe-core (`axe-registration-form.json`, `axe-full-page.json`) e anotação com as violações conhecidas | `A11Y-01` | `src/utils/a11y.helper.ts` |
-| Trace (linha do tempo com DOM, rede e console de cada ação) | Sempre no CI; localmente, só em falha | `playwright.config.ts` |
+| Trace (linha do tempo com DOM, rede e console de cada ação) | Em falha, incluindo a tentativa que falhou de um teste instável. Com `PW_TRACE=on` (ou o input `trace` do disparo manual), de todos os testes | `playwright.config.ts` |
 | Vídeo | Só em falha (é o artefato mais pesado) | `playwright.config.ts` |
 
 Para abrir o relatório HTML localmente:
@@ -165,13 +165,15 @@ O workflow [`.github/workflows/tests.yml`](./.github/workflows/tests.yml) roda e
 3. **`e2e-tests`** — um job por projeto, em paralelo (`fail-fast: false`), com cache de dependências npm e dos navegadores Playwright, e filtro opcional por tag.
 4. **`merge-reports`** — junta os relatórios `blob` de todos os projetos em um único HTML (`playwright-report-merged`) e publica um resumo (passaram, falharam, flaky) na página da execução.
 
+No disparo manual há três opções: navegador, tag e trace (`retain-on-failure`, o padrão, ou `on` para gravar o trace de todos os testes).
+
 Artefatos publicados em cada execução:
 
 - **`playwright-report-merged`** — relatório HTML único dos 3 projetos, com todas as evidências da tabela acima (retenção de 30 dias). Para abrir: baixar, descompactar e rodar `npx playwright show-report <pasta>`.
 - **`test-results-<projeto>`** — só quando há falha: arquivos brutos de trace, vídeo e screenshot, para abrir direto com `show-trace` (30 dias).
 - **Resumo da execução** na página do run (passaram, falharam, instáveis, ignorados).
 
-O relatório consolidado é publicado mesmo quando há falha (`if: !cancelled()`). Não há um relatório HTML por projeto: ele repetiria o consolidado e, com trace ligado no CI, multiplicaria o espaço de armazenamento usado.
+O relatório consolidado é publicado mesmo quando há falha (`if: !cancelled()`). Não há um relatório HTML por projeto: ele repetiria o consolidado e multiplicaria o espaço de armazenamento usado.
 
 ---
 
@@ -239,6 +241,7 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
 - **Leituras em lote só depois de um estado confirmado:** antes de ler uma coluna inteira (`getColumnValues`, `readDynamicTableRecords`), o teste espera a contagem de linhas com `toHaveCount`, para não ler a tabela no meio de uma atualização.
 - **Sem asserções sobre aleatoriedade:** a Dynamic Table embaralha colunas e linhas a cada carga, mas o teste não exige que a ordem mude após o reload (o sorteio pode repetir a ordem e geraria falha intermitente). Ele valida as regras que não mudam: fruta → cor/estação e faixas numéricas.
 - **Verificação de estabilidade:** a suíte foi executada com `--repeat-each=3` (39/39 aprovados) antes da entrega.
+- **Instabilidade real encontrada no CI e corrigida:** numa execução, o `FRM-E2E-01` falhou no iPhone e passou no retry. O trace da tentativa que falhou mostrou a mensagem de sucesso parada na tela, mas o WebKit do runner levou ~7 s só para rolar até ela, e o print de evidência estourou o tempo esperando o elemento estabilizar. A evidência, que é diagnóstico, estava reprovando um teste cujas asserções já tinham passado. O helper passou a ter tempo-limite próprio e, se o print do componente não sair, registra a tela visível com uma nota.
 - Timeouts globais configurados centralmente em `playwright.config.ts` (`timeout: 30s`, `expect: 10s`, `actionTimeout: 10s`).
 
 ---
@@ -259,7 +262,7 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
 - **Seleção dos cenários:** 5 testes de núcleo (um por item obrigatório do enunciado) e 3 complementares para os maiores riscos restantes — ver a seção 3.
 - **O que não automatizar em E2E:** combinações exaustivas de regras de campo (melhor cobertas em testes unitários/componente), regras garantidas pelo próprio HTML (`disabled`, `maxlength`), chamadas reais a APIs de terceiros sem mock (`jsonplaceholder`), seções secundárias fora do domínio administrativo (Shopping, Media, Carousel) e validações manuais de tecnologia assistiva.
 - **Gate de acessibilidade só em violação crítica, e só no formulário:** a aplicação já tem violações na tabela e no contraste. Barrar tudo deixaria a suíte sempre vermelha; ignorar esconderia os problemas. A auditoria da página inteira vai para o relatório como evidência.
-- **Evidência mesmo quando o teste passa:** um relatório verde sem prints não mostra o que foi validado. Cada teste anexa o estado final; o trace fica ligado no CI para que qualquer execução possa ser inspecionada (inclusive para explicar um trace na apresentação).
+- **Evidência mesmo quando o teste passa:** um relatório verde sem prints não mostra o que foi validado. Cada teste anexa o estado final. O trace fica só para falhas por padrão: com trace de todos os testes, cada execução gerava ~36 MB de artefato, o que esgotaria rápido a cota de um repositório privado. O disparo manual com `trace: on` grava de todos (útil para explicar um trace na apresentação).
 
 ---
 
@@ -272,6 +275,7 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
   - Exclusão de usuário na tabela ocorre imediatamente sem diálogo de confirmação (`RSK-F07`).
   - Violações críticas de acessibilidade detectadas pelo `axe-core` na tabela de usuários (`select-name`, `label`, `button-name`) e violação séria `label-content-name-mismatch` na seção `#a11y`.
   - O container com scroll horizontal da tabela não é focável por teclado (`scrollable-region-focusable`), e o menu hambúrguer não expõe `aria-expanded` ao abrir/fechar (`RSK-A07`, `RSK-A08`).
+  - O banner de cookies fica fixo na parte de baixo da tela e ocupa 25% da altura no iPhone 13 (163 de 664 px), cobrindo conteúdo e ações até ser fechado (`RSK-U04`).
 - **Limitações da análise automatizada de acessibilidade (`axe-core`):** cobre estruturalmente regras detectáveis no DOM (~30–50% dos critérios WCAG), mas **não substitui** testes manuais com leitores de tela (VoiceOver/NVDA), verificação de clareza semântica, zoom 200% e operação assistiva por voz.
   - Exemplo concreto, comprovado por mutação: removendo o `for` do label de e-mail, o axe **não acusou nada**, porque aceita o `placeholder` do campo como nome acessível. Por isso o `A11Y-01` verifica a associação de labels explicitamente.
 
@@ -294,6 +298,7 @@ Em conformidade com a transparência solicitada no desafio:
   - A documentação descrevia como "Coberto" cenários que ainda não existiam.
   - Ao enxugar o `A11Y-01`, a IA propôs remover a checagem manual de labels por considerá-la redundante com o axe. O teste de mutação (remover o `for` de um label) mostrou que o axe não detecta o problema quando o campo tem placeholder; a checagem foi mantida.
   - A configuração inicial só gerava screenshot e trace em falha: uma execução verde não deixava evidência visual do que foi validado. Passou a anexar um print do estado final em todo teste.
+  - A primeira versão desse helper de evidência podia reprovar o teste: no WebKit mobile do CI, o print da mensagem de sucesso estourou o tempo esperando o elemento estabilizar, e o `FRM-E2E-01` ficou instável (passou no retry). A causa foi encontrada no trace da tentativa que falhou, dentro do relatório do CI, e o helper passou a nunca reprovar o teste (seção 13).
 - **Outros ajustes:** durante o setup inicial, o TypeScript 7 rejeitou opções legadas (`moduleResolution: "Node"` e `baseUrl`), exigindo ajuste para `module: "ESNext"` + `moduleResolution: "Bundler"` e paths relativos; além disso, a varredura `axe-core` revelou que a aplicação possui violações pré-existentes, levando à decisão de bloquear apenas violações críticas no formulário e anexar o diagnóstico completo da página como evidência.
 - **Decisões técnicas autorais:** escolha da estrutura em repositório isolado, estratégia multi-engine (`Chromium` completo + `WebKit` `@smoke` + `iPhone 13` `@mobile`), priorização dos 8 cenários, decisão de bloquear apenas violações críticas de acessibilidade, de não afirmar aleatoriedade na Dynamic Table e organização incremental de commits por domínio.
 
