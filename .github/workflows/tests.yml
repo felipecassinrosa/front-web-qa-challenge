@@ -30,6 +30,7 @@ on:
           - '@dynamic'
           - '@a11y'
           - '@mobile'
+          - '@negative'
 
 permissions:
   contents: read
@@ -38,7 +39,33 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  NODE_VERSION: '24'
+  BASE_URL: https://playwrightlab.github.io/
+
 jobs:
+  # O contexto `matrix` não pode ser usado no `if` de um job. Por isso a matriz é montada aqui,
+  # já filtrada pelo projeto escolhido no disparo manual, e consumida via fromJSON no job e2e.
+  plan:
+    name: Plan test matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Build matrix
+        id: matrix
+        env:
+          SELECTED_PROJECT: ${{ inputs.project || 'all' }}
+        run: |
+          all='[{"project":"chromium","browser":"chromium"},{"project":"webkit","browser":"webkit"},{"project":"mobile-safari","browser":"webkit"}]'
+          if [ "$SELECTED_PROJECT" = "all" ]; then
+            selected="$all"
+          else
+            selected=$(echo "$all" | jq -c --arg p "$SELECTED_PROJECT" '[.[] | select(.project == $p)]')
+          fi
+          echo "matrix={\"include\":$selected}" >> "$GITHUB_OUTPUT"
+          echo "Matriz: $selected"
+
   typecheck:
     name: TypeScript Check
     runs-on: ubuntu-latest
@@ -49,7 +76,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
@@ -60,23 +87,12 @@ jobs:
 
   e2e-tests:
     name: Playwright (${{ matrix.project }})
-    needs: typecheck
+    needs: [plan, typecheck]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - project: chromium
-            browser: chromium
-          - project: webkit
-            browser: webkit
-          - project: mobile-safari
-            browser: webkit
-    if: >-
-      github.event_name != 'workflow_dispatch' ||
-      inputs.project == 'all' ||
-      inputs.project == matrix.project
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -84,29 +100,45 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: browsers-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-${{ matrix.browser }}
+
       - name: Install Playwright browser (${{ matrix.browser }})
+        if: steps.browsers-cache.outputs.cache-hit != 'true'
         run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Install browser system dependencies (cache hit)
+        if: steps.browsers-cache.outputs.cache-hit == 'true'
+        run: npx playwright install-deps ${{ matrix.browser }}
 
       - name: Run Playwright tests
         env:
-          BASE_URL: https://playwrightlab.github.io/
           SELECTED_TAG: ${{ inputs.tag || 'all' }}
+          PW_BLOB_NAME: ${{ matrix.project }}
         run: |
           if [ "$SELECTED_TAG" != "all" ]; then
-            npx playwright test --project=${{ matrix.project }} --grep "$SELECTED_TAG"
+            npx playwright test --project=${{ matrix.project }} --grep "$SELECTED_TAG" --pass-with-no-tests
           else
             npx playwright test --project=${{ matrix.project }}
           fi
 
       - name: Upload Playwright HTML report
         uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ !cancelled() }}
         with:
           name: playwright-report-${{ matrix.project }}
           path: playwright-report/
@@ -115,9 +147,65 @@ jobs:
 
       - name: Upload failure evidences (traces, screenshots, videos)
         uses: actions/upload-artifact@v4
-        if: always()
+        if: ${{ !cancelled() }}
         with:
           name: test-results-${{ matrix.project }}
           path: test-results/
           retention-days: 14
           if-no-files-found: ignore
+
+      - name: Upload blob report
+        uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: blob-report-${{ matrix.project }}
+          path: blob-report/
+          retention-days: 1
+          if-no-files-found: ignore
+
+  merge-reports:
+    name: Merge reports
+    needs: e2e-tests
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Download blob reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-blob-reports
+          pattern: blob-report-*
+          merge-multiple: true
+
+      - name: Merge into a single HTML report
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+        run: npx playwright merge-reports --reporter html,json ./all-blob-reports
+
+      - name: Publish execution summary
+        run: |
+          {
+            echo "## Resultado da suíte Playwright"
+            echo
+            jq -r '"| Passaram | Falharam | Instáveis (flaky) | Ignorados | Duração (s) |\n|---:|---:|---:|---:|---:|\n| \(.stats.expected) | \(.stats.unexpected) | \(.stats.flaky) | \(.stats.skipped) | \(.stats.duration / 1000 | floor) |"' results.json
+            echo
+            echo "Relatório consolidado: artefato **playwright-report-merged** (abrir com \`npx playwright show-report\`)."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload merged HTML report
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-merged
+          path: playwright-report/
+          retention-days: 14

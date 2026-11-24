@@ -15,7 +15,8 @@
     "test:forms": "playwright test --grep @forms",
     "test:dynamic": "playwright test --grep @dynamic",
     "test:a11y": "playwright test --grep @a11y",
-    "test:responsive": "playwright test --grep @mobile",
+    "test:responsive": "playwright test --project=mobile-safari --grep @mobile-only",
+    "test:negative": "playwright test --grep @negative",
     "report": "playwright show-report",
     "typecheck": "tsc --noEmit"
   },

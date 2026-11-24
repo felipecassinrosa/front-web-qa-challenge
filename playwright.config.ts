@@ -17,8 +17,14 @@ export default defineConfig({
   expect: {
     timeout: 10_000,
   },
+  // No CI, cada job da matriz gera também um "blob" que o job merge-reports consolida em um único HTML.
   reporter: isCI
-    ? [['github'], ['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]]
+    ? [
+        ['github'],
+        ['list'],
+        ['html', { open: 'never', outputFolder: 'playwright-report' }],
+        ['blob', { fileName: `report-${process.env.PW_BLOB_NAME ?? 'ci'}.zip` }],
+      ]
     : [['list'], ['html', { open: 'never', outputFolder: 'playwright-report' }]],
   use: {
     baseURL: BASE_URL,
