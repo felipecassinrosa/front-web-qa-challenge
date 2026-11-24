@@ -2,6 +2,11 @@ import { Locator, Page, test } from '@playwright/test';
 
 const ELEMENT_SCREENSHOT_TIMEOUT = 5_000;
 
+// Elementos fixos da página (barra de navegação e banner de cookies) aparecem fora do lugar no
+// print de um componente — por cima do título ou no meio de uma tabela. Eles são ocultados só
+// nesse print; o teste em si roda com eles visíveis, e o print da tela inteira os mantém.
+const HIDE_FIXED_OVERLAYS = '#navbar, [data-testid="cookie-banner"] { visibility: hidden !important; }';
+
 /**
  * Anexa ao relatório HTML um print do estado final validado, para que haja evidência visual
  * mesmo quando o teste passa. Recebe um Locator para focar no componente validado ou a Page
@@ -19,7 +24,11 @@ export async function attachEvidence(name: string, target: Locator | Page): Prom
     const page = isPage(target) ? target : target.page();
 
     try {
-      const body = await target.screenshot({ animations: 'disabled', timeout: ELEMENT_SCREENSHOT_TIMEOUT });
+      const body = await target.screenshot({
+        animations: 'disabled',
+        timeout: ELEMENT_SCREENSHOT_TIMEOUT,
+        ...(isPage(target) ? {} : { style: HIDE_FIXED_OVERLAYS }),
+      });
       await test.info().attach(attachmentName, { body, contentType: 'image/png' });
       return;
     } catch (error) {
