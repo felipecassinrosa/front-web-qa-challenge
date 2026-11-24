@@ -15,6 +15,12 @@ const traceMode: TraceMode = TRACE_MODES.includes(process.env.PW_TRACE as TraceM
   ? (process.env.PW_TRACE as TraceMode)
   : 'retain-on-failure';
 
+// O WebKit no runner do CI (2 vCPUs) é de 2 a 3x mais lento que o Chromium: o FRM-E2E-01 levou
+// até 19,6 s no iPhone, contra ~4 s no Chromium. Os projetos WebKit ganham um orçamento maior
+// por teste só no CI; os tempos-limite de ação e de asserção (10 s) não mudam, então um
+// travamento real continua sendo pego.
+const WEBKIT_TEST_TIMEOUT = isCI ? 45_000 : 30_000;
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -62,6 +68,7 @@ export default defineConfig({
     },
     {
       name: 'webkit',
+      timeout: WEBKIT_TEST_TIMEOUT,
       grep: /@smoke/,
       grepInvert: /@mobile-only/,
       use: {
@@ -71,6 +78,7 @@ export default defineConfig({
     },
     {
       name: 'mobile-safari',
+      timeout: WEBKIT_TEST_TIMEOUT,
       grep: /@mobile/,
       use: {
         ...devices['iPhone 13'],
