@@ -175,6 +175,41 @@ Artefatos publicados em cada execução:
 
 O relatório consolidado é publicado mesmo quando há falha (`if: !cancelled()`). Não há um relatório HTML por projeto: ele repetiria o consolidado e multiplicaria o espaço de armazenamento usado.
 
+### Exemplos de evidência
+
+Prints tirados do relatório consolidado de uma execução real da pipeline ([execução 45472283352](https://github.com/felipecassinrosa/front-web-qa-challenge/actions/runs/45472283352): 13 de 13 aprovados, nenhum instável). Ficam versionados em [`docs/evidencias/`](./docs/evidencias/) para não depender da validade do artefato.
+
+**Relatório consolidado** — os 8 testes nos 3 projetos, com as tags de cada um:
+
+<img src="docs/evidencias/relatorio-resumo.png" alt="Relatório HTML consolidado: 13 execuções, 13 aprovadas, nenhuma falha ou instável" width="760">
+
+**Detalhe de um teste** — passos do `USR-E2E-01` com o tempo de cada um:
+
+<img src="docs/evidencias/relatorio-detalhe-usr-e2e-01.png" alt="Passos do teste USR-E2E-01 no relatório, com a duração de cada passo" width="760">
+
+**Print do estado validado, um por teste:**
+
+<table>
+<tr>
+<td width="50%"><b>USR-E2E-01</b> — tabela depois de excluir o Oscar Wilde: 14 registros, ordem decrescente<br><img src="docs/evidencias/usr-e2e-01-tabela-apos-exclusao.png" alt="Tabela de usuários com 14 registros após a exclusão"></td>
+<td width="50%"><b>USR-NEG-01</b> — busca sem resultado: nenhuma linha e o contador <code>Showing 1-0 of 0 entries</code> (defeito RSK-U01)<br><img src="docs/evidencias/usr-neg-01-busca-sem-resultado.png" alt="Tabela vazia após buscar usuário inexistente"></td>
+</tr>
+<tr>
+<td><b>FRM-E2E-01</b> — mensagem de sucesso após o cadastro<br><img src="docs/evidencias/frm-e2e-01-cadastro-sucesso.png" alt="Mensagem Registration successful"></td>
+<td rowspan="2"><b>FRM-NEG-01</b> — e-mail e senha inválidos e termos desmarcados: só o erro do nome (corrigido) sumiu<br><img src="docs/evidencias/frm-neg-01-mensagens-de-validacao.png" alt="Formulário com mensagens de validação" width="300"></td>
+</tr>
+<tr>
+<td><b>DYN-ASYNC-01</b> (WebKit) — opção carregada após o atraso e selecionada; o botão segue desabilitado<br><img src="docs/evidencias/dyn-async-01-dropdown-webkit.png" alt="Dropdown com a opção Books selecionada"></td>
+</tr>
+<tr>
+<td><b>DYN-TBL-01</b> — tabela dinâmica depois do reload, lida pelos cabeçalhos<br><img src="docs/evidencias/dyn-tbl-01-tabela-apos-reload.png" alt="Tabela de frutas com colunas embaralhadas"></td>
+<td rowspan="2"><b>RSP-MOB-01</b> (iPhone 13) — menu hambúrguer aberto; o banner de cookies (RSK-U04) cobre a parte de baixo da tela<br><img src="docs/evidencias/rsp-mob-01-menu-aberto-iphone.png" alt="Menu mobile aberto no iPhone 13" width="300"></td>
+</tr>
+<tr>
+<td><b>A11Y-01</b> — diálogo aberto só pelo teclado, com o foco no botão <i>Close Trap</i><br><img src="docs/evidencias/a11y-01-dialogo-com-foco.png" alt="Diálogo com foco preso e o botão Close Trap focado" width="360"></td>
+</tr>
+</table>
+
 ---
 
 ## 11. Arquitetura do projeto
@@ -186,7 +221,8 @@ front-web-qa-challenge/
 ├── docs/
 │   ├── estrategia-de-testes.md  # Estratégia completa e critérios de cobertura
 │   ├── matriz-de-riscos.md      # Riscos funcionais, técnicos, UX, a11y e achados reais
-│   └── matriz-de-cenarios.md    # Cenários priorizados (automatizados e fora de escopo)
+│   ├── matriz-de-cenarios.md    # Cenários priorizados e rastreabilidade do enunciado
+│   └── evidencias/              # Prints de uma execução real do CI (relatório e estado validado)
 ├── src/
 │   ├── data/
 │   │   └── userData.factory.ts  # Factories e constantes de massa fictícia controlada
@@ -247,7 +283,7 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
   - o mesmo teste levava de 27 a 40 s na 1ª tentativa e ~14 s no retry, que roda quase sozinho. A causa era disputa de CPU: 2 workers WebKit gravando vídeo e screencast num runner de 2 vCPUs (repositório privado — confirmado no log do job).
 
   Correções: 1 worker por job no CI (o paralelismo já acontece entre os jobs de cada navegador), vídeo só no retry e evidência com tempo-limite próprio, que nunca reprova o teste. Na execução seguinte, os 13 testes passaram de primeira, com o `FRM-E2E-01` em ~13 s no WebKit.
-- Timeouts globais configurados centralmente em `playwright.config.ts` (`timeout: 30s`, `expect: 10s`, `actionTimeout: 10s`).
+- Timeouts globais configurados centralmente em `playwright.config.ts` (`timeout: 30s`, `expect: 10s`, `actionTimeout: 10s`). No CI, os projetos WebKit têm 45 s por teste: lá o WebKit é de 2 a 3 vezes mais lento que o Chromium (até 19,6 s no `FRM-E2E-01` do iPhone, contra ~4 s no Chromium). Os limites de ação e de asserção não mudam, então um travamento real continua sendo pego.
 
 ---
 

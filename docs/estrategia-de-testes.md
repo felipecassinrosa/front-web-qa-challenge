@@ -20,7 +20,7 @@ A estratégia cobre obrigatoriamente os pilares críticos identificados na anál
 - **Acessibilidade (`a11y`):** associação de labels no formulário, operação por teclado de um diálogo (`role="dialog"` com foco preso) e análise automatizada via `@axe-core/playwright`.
 - **Responsividade (Mobile):** validação em viewport mobile (`iPhone 13 — 390×844`) garantindo ausência de overflow horizontal global, menu responsivo, empilhamento de layout e operação da jornada crítica em tela reduzida.
 - **Compatibilidade entre navegadores:** estratégia multi-engine combinando **Chromium** e **WebKit**.
-- **Execução contínua e diagnóstico:** pipeline GitHub Actions com relatório HTML consolidado, prints de evidência em todo teste, logs do navegador, traces e, em falha, vídeos.
+- **Execução contínua e diagnóstico:** pipeline GitHub Actions com relatório HTML consolidado, prints de evidência em todo teste, logs do navegador e, em falha, traces e vídeos (com opção manual de trace completo).
 
 ---
 
@@ -146,6 +146,7 @@ Prioridade (risco) e obrigatoriedade são coisas diferentes: `A11Y-01` é P1 pel
 - **Controle de flakiness:** timeouts configurados centralmente, `retries: 1` apenas no CI (0 local para expor instabilidades imediatamente durante o desenvolvimento) e nenhuma asserção sobre comportamento aleatório (ex.: não se exige que a Dynamic Table mude de ordem após o reload). A suíte foi validada com `--repeat-each=3` (39/39).
 - **Evidências:** cada teste anexa ao relatório um print do estado final validado (ex.: tabela após a exclusão, mensagem de sucesso, menu mobile aberto); a config tira um screenshot ao fim de todo teste; uma fixture automática anexa os logs do navegador (erros de console, exceções e requisições com falha); o trace fica para as falhas e o vídeo para o retry (o disparo manual com `trace: on` grava o trace de todos os testes).
 - **Instabilidade real encontrada no CI:** o `FRM-E2E-01` falhou na 1ª tentativa no WebKit em 3 de 4 execuções. Os traces das tentativas que falharam mostraram lentidão só nas ações em que o Playwright espera o elemento estabilizar; a hipótese do banner de cookies foi descartada pelos logs; e o retry, rodando quase sozinho, levava ~14 s contra 27–40 s da 1ª tentativa — disputa de CPU entre 2 workers WebKit num runner de 2 vCPUs. Correção: 1 worker por job no CI (os navegadores já rodam em jobs paralelos), vídeo só no retry e evidência que nunca reprova o teste. Na execução seguinte, 13/13 passaram de primeira. O `retries: 1` do CI serve para expor esse tipo de problema como *flaky* no relatório, não para escondê-lo: o trace da tentativa que falhou fica preservado.
+- **Orçamento de tempo por motor:** com a disputa de CPU resolvida, o WebKit no CI continua de 2 a 3 vezes mais lento que o Chromium (até 19,6 s no `FRM-E2E-01` do iPhone, contra ~4 s). Os projetos WebKit têm 45 s por teste só no CI; os limites de ação e de asserção (10 s) não mudam, para que um travamento real continue sendo pego.
 - **Validação das asserções:** além de passar, cada asserção crítica foi checada com mutação manual (alterar o valor esperado ou a página e confirmar que o teste falha). Isso revelou um falso positivo na ordenação ASC (a página 1 já vem em ordem alfabética), corrigido para validar a transição ASC → DESC, e mostrou que o axe não detecta label quebrado em campo com placeholder — por isso a checagem explícita de labels ficou no `A11Y-01`.
 - **Pipeline:** matriz por projeto calculada no job `plan` (com filtro manual por navegador e por tag), cache de dependências e navegadores, artefatos publicados mesmo com falha e relatório HTML único consolidado a partir dos relatórios `blob` de cada projeto.
 
@@ -173,7 +174,7 @@ Prioridade (risco) e obrigatoriedade são coisas diferentes: `A11Y-01` é P1 pel
 ### Critérios de saída (Exit Criteria)
 - 100% dos cenários automatizados verdes em `chromium`, `webkit` (`@smoke`) e `mobile-safari` (`@mobile`).
 - Zero usos de `waitForTimeout`, `test.only` ou seletores frágeis (XPath absoluto / índices fixos).
-- Relatório HTML consolidado publicado na pipeline, com prints de evidência, logs do navegador e traces de todos os testes.
+- Relatório HTML consolidado publicado na pipeline, com prints de evidência, logs do navegador e traces (em caso de falha por padrão, ou de todos os testes quando disparado com `trace: on`).
 - Documentação estratégica, matrizes e README atualizados com os achados reais.
 
 ---
