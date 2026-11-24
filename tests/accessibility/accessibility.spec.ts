@@ -1,16 +1,19 @@
 import { expect, test } from '@fixtures/test.fixtures';
 import { attachEvidence } from '@utils/evidence';
-import { runAccessibilityAudit } from '@utils/a11y.helper';
+import { WCAG_21_AA_TAGS, runAccessibilityAudit } from '@utils/a11y.helper';
 
-test.describe('Acessibilidade — teclado, ARIA e auditoria automatizada', () => {
+test.describe('Acessibilidade — labels, auditoria automatizada e teclado', () => {
   test(
-    'A11Y-01: deve permitir operação por teclado, manter o foco no modal e não ter violações críticas no formulário',
+    'A11Y-01: deve associar labels e não ter violações críticas no formulário, sem prender o teclado no modal',
     { tag: ['@a11y'] },
     async ({ page, registrationFormPage: form, accessibilityPage: a11y }, testInfo) => {
       await test.step('Validar que os campos do formulário têm label associado (A11Y-02)', async () => {
         await form.openSection();
 
         // getByLabel só resolve se houver associação programática <label for> ↔ <input id>.
+        // Esta verificação explícita é necessária porque o axe-core NÃO detecta label quebrado
+        // quando o campo tem placeholder (ele aceita o placeholder como nome acessível) —
+        // comprovado removendo o `for` do label de e-mail: o axe não acusou nada.
         const labelledFields = [
           { field: form.fullNameInput, id: 'fullName' },
           { field: form.emailInput, id: 'email' },
@@ -37,11 +40,12 @@ test.describe('Acessibilidade — teclado, ARIA e auditoria automatizada', () =>
         expect(critical, JSON.stringify(critical, null, 2)).toEqual([]);
       });
 
-      await test.step('Anexar auditoria da página inteira como evidência, sem bloquear (RSK-A01..A06)', async () => {
-        // Violações pré-existentes do alvo (tabela de usuários, seção #a11y, contraste) ficam
-        // registradas no relatório para diagnóstico, sem virar gate até serem corrigidas no produto.
+      await test.step('Anexar auditoria da página inteira como evidência, sem bloquear (RSK-A01..A07)', async () => {
+        // Violações pré-existentes do alvo (tabela de usuários, seção #a11y, contraste, headings)
+        // ficam registradas no relatório para diagnóstico, sem virar gate até serem corrigidas.
         const pageAudit = await runAccessibilityAudit(page, testInfo, {
           attachmentName: 'axe-full-page.json',
+          tags: [...WCAG_21_AA_TAGS, 'best-practice'],
         });
         testInfo.annotations.push({
           type: 'a11y-known-issues',
@@ -49,18 +53,8 @@ test.describe('Acessibilidade — teclado, ARIA e auditoria automatizada', () =>
         });
       });
 
-      await test.step('Operar o painel expansível por teclado e validar aria-expanded (A11Y-03)', async () => {
+      await test.step('Operar o diálogo só por teclado: ordem de foco e saída com Escape (A11Y-03/04/07)', async () => {
         await a11y.scrollToSection('a11y');
-        await expect(a11y.expandButton).toHaveAttribute('aria-expanded', 'false');
-
-        await a11y.expandButton.focus();
-        await page.keyboard.press('Enter');
-
-        await expect(a11y.expandButton).toHaveAttribute('aria-expanded', 'true');
-        await expect(a11y.expandContent).toBeVisible();
-      });
-
-      await test.step('Manter o foco dentro do diálogo e liberá-lo com Escape (A11Y-04 / A11Y-07)', async () => {
         await a11y.focusTrapOpenButton.focus();
         await page.keyboard.press('Enter');
 

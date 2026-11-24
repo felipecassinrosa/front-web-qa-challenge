@@ -1,10 +1,13 @@
 import AxeBuilder from '@axe-core/playwright';
 import { Page, TestInfo } from '@playwright/test';
 
+export const WCAG_21_AA_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'];
+
 export interface AccessibilityAuditOptions {
   include?: string;
   attachmentName?: string;
-  wcagTags?: string[];
+  /** Tags de regras do axe-core. Padrão: WCAG 2.0/2.1 níveis A e AA. */
+  tags?: string[];
 }
 
 export interface AccessibilityAuditSummary {
@@ -21,7 +24,8 @@ export interface AccessibilityAuditSummary {
 }
 
 /**
- * Executa auditoria automatizada WCAG com axe-core e anexa o resumo estruturado ao relatório HTML.
+ * Executa auditoria automatizada com axe-core e anexa o resumo estruturado ao relatório HTML.
+ * Limitação: o axe só detecta o que é verificável no DOM (ver README, seção de limitações).
  */
 export async function runAccessibilityAudit(
   page: Page,
@@ -31,10 +35,10 @@ export async function runAccessibilityAudit(
   const {
     include,
     attachmentName = 'axe-accessibility-report.json',
-    wcagTags = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'],
+    tags = WCAG_21_AA_TAGS,
   } = options;
 
-  let builder = new AxeBuilder({ page }).withTags(wcagTags);
+  let builder = new AxeBuilder({ page }).withTags(tags);
 
   if (include) {
     builder = builder.include(include);
