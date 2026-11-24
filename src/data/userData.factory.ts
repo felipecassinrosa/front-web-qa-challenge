@@ -38,6 +38,15 @@ export const INVALID_REGISTRATION_DATA = {
   shortPassword: '123',
 };
 
+/** Mensagens de validação exibidas pelo Registration Form (validação JS customizada, form com `novalidate`). */
+export const REGISTRATION_MESSAGES = {
+  success: 'Registration successful! Welcome aboard.',
+  fullNameRequired: 'Name is required',
+  invalidEmail: 'Valid email is required',
+  shortPassword: 'Password must be at least 8 characters',
+  termsRequired: 'You must accept the terms',
+};
+
 export const USERS_TABLE_SEED = {
   initialTotalEntries: 15,
   defaultRowsPerPage: 5,
@@ -49,5 +58,35 @@ export const USERS_TABLE_SEED = {
     status: 'active',
   },
   pageTwoFirstUser: 'Fiona Apple',
+  firstUserAlphabetically: 'Alice Johnson',
+  lastUserAlphabetically: 'Oscar Wilde',
+  maxRowsPerPage: 15,
   nonExistentQuery: 'UsuarioInexistenteQa999',
+};
+
+export const DELAYED_DROPDOWN_SEED = {
+  placeholderBeforeLoad: 'Click button to load...',
+  loadingText: 'Loading options...',
+  expectedCategories: ['Electronics', 'Clothing', 'Books', 'Sports & Outdoors', 'Home & Garden'],
+  categoryToSelect: 'Books',
+};
+
+/**
+ * Regras de negócio estáveis da Dynamic Table: a ordem de colunas/linhas e os valores numéricos
+ * são aleatórios a cada carga, mas a relação fruta → cor/estação e as faixas numéricas são fixas.
+ */
+export const DYNAMIC_FRUIT_TABLE_RULES = {
+  expectedColumns: ['Fruit', 'Color', 'Weight (g)', 'Price (₹/kg)', 'Season', 'Stock'],
+  fruits: {
+    Mango: { color: 'Yellow', season: 'Summer' },
+    Apple: { color: 'Red', season: 'Winter' },
+    Banana: { color: 'Green', season: 'All Year' },
+    Grapes: { color: 'Purple', season: 'Monsoon' },
+    Orange: { color: 'Orange', season: 'Winter' },
+  } as Record<string, { color: string; season: string }>,
+  ranges: {
+    weight: { min: 50, max: 900 },
+    price: { min: 40, max: 500 },
+    stock: { min: 0, max: 200 },
+  },
 };
