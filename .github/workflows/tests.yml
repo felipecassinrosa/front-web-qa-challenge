@@ -136,22 +136,16 @@ jobs:
             npx playwright test --project=${{ matrix.project }}
           fi
 
-      - name: Upload Playwright HTML report
+      # O relatório HTML (com screenshots, traces, logs e anexos axe) é publicado uma única vez,
+      # consolidado no job merge-reports. Os arquivos brutos de test-results só são enviados em
+      # falha, para abrir trace/vídeo direto com `npx playwright show-trace` sem duplicar artefatos.
+      - name: Upload raw failure evidences (traces, screenshots, videos)
         uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-report-${{ matrix.project }}
-          path: playwright-report/
-          retention-days: 14
-          if-no-files-found: warn
-
-      - name: Upload failure evidences (traces, screenshots, videos)
-        uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
+        if: ${{ failure() }}
         with:
           name: test-results-${{ matrix.project }}
           path: test-results/
-          retention-days: 14
+          retention-days: 30
           if-no-files-found: ignore
 
       - name: Upload blob report
@@ -200,7 +194,8 @@ jobs:
             echo
             jq -r '"| Passaram | Falharam | Instáveis (flaky) | Ignorados | Duração (s) |\n|---:|---:|---:|---:|---:|\n| \(.stats.expected) | \(.stats.unexpected) | \(.stats.flaky) | \(.stats.skipped) | \(.stats.duration / 1000 | floor) |"' results.json
             echo
-            echo "Relatório consolidado: artefato **playwright-report-merged** (abrir com \`npx playwright show-report\`)."
+            echo "Relatório consolidado (screenshots, traces, logs do navegador e auditorias axe): artefato **playwright-report-merged**."
+            echo "Para abrir: baixe o artefato, descompacte e rode \`npx playwright show-report <pasta>\`."
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload merged HTML report
@@ -208,4 +203,4 @@ jobs:
         with:
           name: playwright-report-merged
           path: playwright-report/
-          retention-days: 14
+          retention-days: 30
