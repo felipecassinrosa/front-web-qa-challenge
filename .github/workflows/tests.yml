@@ -1,0 +1,123 @@
+name: Front Web QA — Playwright Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Projeto / navegador a executar'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - chromium
+          - webkit
+          - mobile-safari
+      tag:
+        description: 'Filtro por tag (opcional)'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - '@smoke'
+          - '@users'
+          - '@forms'
+          - '@dynamic'
+          - '@a11y'
+          - '@mobile'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typecheck:
+    name: TypeScript Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
+
+  e2e-tests:
+    name: Playwright (${{ matrix.project }})
+    needs: typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - project: chromium
+            browser: chromium
+          - project: webkit
+            browser: webkit
+          - project: mobile-safari
+            browser: webkit
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      inputs.project == 'all' ||
+      inputs.project == matrix.project
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browser (${{ matrix.browser }})
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run Playwright tests
+        env:
+          BASE_URL: https://playwrightlab.github.io/
+          SELECTED_TAG: ${{ inputs.tag || 'all' }}
+        run: |
+          if [ "$SELECTED_TAG" != "all" ]; then
+            npx playwright test --project=${{ matrix.project }} --grep "$SELECTED_TAG"
+          else
+            npx playwright test --project=${{ matrix.project }}
+          fi
+
+      - name: Upload Playwright HTML report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report-${{ matrix.project }}
+          path: playwright-report/
+          retention-days: 14
+          if-no-files-found: warn
+
+      - name: Upload failure evidences (traces, screenshots, videos)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-${{ matrix.project }}
+          path: test-results/
+          retention-days: 14
+          if-no-files-found: ignore
