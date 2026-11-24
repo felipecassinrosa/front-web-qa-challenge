@@ -6,6 +6,15 @@ dotenv.config({ quiet: true });
 const BASE_URL = process.env.BASE_URL || 'https://playwrightlab.github.io/';
 const isCI = !!process.env.CI;
 
+// Trace só de testes que falharam (inclui a tentativa que falhou de um teste instável).
+// PW_TRACE=on grava o trace de todos os testes — usado no disparo manual do workflow,
+// pois manter trace de toda execução multiplica o espaço de artefatos do repositório.
+const TRACE_MODES = ['on', 'retain-on-failure'] as const;
+type TraceMode = (typeof TRACE_MODES)[number];
+const traceMode: TraceMode = TRACE_MODES.includes(process.env.PW_TRACE as TraceMode)
+  ? (process.env.PW_TRACE as TraceMode)
+  : 'retain-on-failure';
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: true,
@@ -30,10 +39,9 @@ export default defineConfig({
     baseURL: BASE_URL,
     actionTimeout: 10_000,
     navigationTimeout: 20_000,
-    // Evidências: screenshot ao fim de todo teste (passando ou falhando); trace sempre no CI,
-    // para que o relatório da pipeline permita inspecionar qualquer execução, e só em falha
-    // localmente; vídeo apenas em falha, por ser o artefato mais pesado.
-    trace: isCI ? 'on' : 'retain-on-failure',
+    // Evidências: screenshot ao fim de todo teste (passando ou falhando), prints do estado
+    // validado anexados pelos próprios testes, trace conforme PW_TRACE e vídeo só em falha.
+    trace: traceMode,
     screenshot: 'on',
     video: 'retain-on-failure',
     locale: 'pt-BR',

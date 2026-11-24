@@ -31,6 +31,14 @@ on:
           - '@a11y'
           - '@mobile'
           - '@negative'
+      trace:
+        description: 'Trace: só das falhas (padrão) ou de todos os testes'
+        required: true
+        default: 'retain-on-failure'
+        type: choice
+        options:
+          - retain-on-failure
+          - 'on'
 
 permissions:
   contents: read
@@ -129,6 +137,7 @@ jobs:
         env:
           SELECTED_TAG: ${{ inputs.tag || 'all' }}
           PW_BLOB_NAME: ${{ matrix.project }}
+          PW_TRACE: ${{ inputs.trace || 'retain-on-failure' }}
         run: |
           if [ "$SELECTED_TAG" != "all" ]; then
             npx playwright test --project=${{ matrix.project }} --grep "$SELECTED_TAG" --pass-with-no-tests
