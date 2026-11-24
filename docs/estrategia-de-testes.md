@@ -99,7 +99,9 @@ Os cenários foram classificados em **P0, P1 e P2** combinando três critérios:
   3. Zero XPath absoluto e zero dependência posicional frágil (`nth-child`).
 - **Sincronização:** 100% baseada em auto-waiting e web-first assertions (`toBeVisible`, `toBeEnabled`, `toBeHidden`, `toHaveText`, `toHaveCount`) — **proibido `waitForTimeout`** como mecanismo de sincronização.
 - **Isolamento e dados:** cada teste inicia em página limpa (`BrowserContext` isolado do Playwright), usa dados sintéticos gerados por factory e não depende da ordem de execução (`fullyParallel: true` com workers controlados: 3 local / 2 em CI).
-- **Controle de flakiness:** timeouts configurados centralmente, `retries: 1` apenas no CI (0 local para expor instabilidades imediatamente durante o desenvolvimento) e retenção de `trace`, `screenshot` e `video` em caso de falha.
+- **Controle de flakiness:** timeouts configurados centralmente, `retries: 1` apenas no CI (0 local para expor instabilidades imediatamente durante o desenvolvimento), retenção de `trace`, `screenshot` e `video` em caso de falha, e nenhuma asserção sobre comportamento aleatório (ex.: não se exige que a Dynamic Table mude de ordem após o reload). A suíte foi validada com `--repeat-each=3` (39/39).
+- **Validação das asserções:** além de passar, cada asserção crítica foi checada com mutação manual (alterar o valor esperado e confirmar que o teste falha). Isso revelou um falso positivo na ordenação ASC (a página 1 já vem em ordem alfabética), corrigido para validar a transição ASC → DESC.
+- **Pipeline:** matriz por projeto calculada no job `plan` (com filtro manual por navegador e por tag), cache de dependências e navegadores, artefatos publicados mesmo com falha e relatório HTML único consolidado a partir dos relatórios `blob` de cada projeto.
 
 ---
 
@@ -144,8 +146,8 @@ Os cenários foram classificados em **P0, P1 e P2** combinando três critérios:
 
 ## 11. Próximos passos
 
-1. Implementar e estabilizar os 6 cenários planejados restantes (`forms`, `dynamic`, `a11y`, `responsive`) sobre a arquitetura base já validada.
-2. Expandir cobertura com **interceptação de rede (`page.route`)** na seção `#network` (simulando 200, 500 e timeout sem depender de serviço externo).
-3. Adicionar **teste visual seletivo** (`toHaveScreenshot`) em componentes críticos estáveis (ex.: formulário de cadastro e modal), avaliando custo de snapshots multiplataforma em CI (Linux vs. macOS).
-4. Incluir **Upload de Arquivos** (`UPL-01..03`) com fixtures estáticas seguras em `test-assets/` caso o fluxo de anexos passe a ser prioritário.
+1. Expandir cobertura com **interceptação de rede (`page.route`)** na seção `#network` (simulando 200, 500 e timeout sem depender de serviço externo).
+2. Adicionar **teste visual seletivo** (`toHaveScreenshot`) em componentes críticos estáveis (ex.: formulário de cadastro e modal), avaliando custo de snapshots multiplataforma em CI (Linux vs. macOS).
+3. Incluir **Upload de Arquivos** (`UPL-01..03`) com fixtures estáticas seguras em `test-assets/` caso o fluxo de anexos passe a ser prioritário.
+4. Adicionar projeto mobile Android (`Pixel 7`, Chromium) para os cenários `@mobile`.
 5. Integrar linting estático (`ESLint` + `eslint-plugin-playwright`) como gate de qualidade na pipeline.
