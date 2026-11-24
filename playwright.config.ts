@@ -20,8 +20,11 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
-  // Paralelismo controlado para não sobrecarregar a aplicação-alvo (restrição do case)
-  workers: isCI ? 2 : 3,
+  // No CI, o paralelismo é entre jobs: cada projeto roda num runner separado. Dentro do job,
+  // 1 worker. Medido: com 2 workers no runner de 2 vCPUs (repo privado), o WebKit levou de
+  // 27 a 40 s no FRM-E2E-01, que falhou na 1ª tentativa em 3 de 4 execuções; o mesmo teste
+  // rodando sozinho (no retry) levou ~14 s. Localmente, 3 workers.
+  workers: isCI ? 1 : 3,
   timeout: 30_000,
   expect: {
     timeout: 10_000,
@@ -40,10 +43,12 @@ export default defineConfig({
     actionTimeout: 10_000,
     navigationTimeout: 20_000,
     // Evidências: screenshot ao fim de todo teste (passando ou falhando), prints do estado
-    // validado anexados pelos próprios testes, trace conforme PW_TRACE e vídeo só em falha.
+    // validado anexados pelos próprios testes e trace conforme PW_TRACE. Vídeo só na nova
+    // tentativa de um teste que falhou: gravar vídeo de todo teste custava CPU no CI, e o
+    // trace da tentativa que falhou já é preservado para diagnóstico.
     trace: traceMode,
     screenshot: 'on',
-    video: 'retain-on-failure',
+    video: 'on-first-retry',
     locale: 'pt-BR',
   },
   projects: [

@@ -139,6 +139,7 @@ jobs:
           PW_BLOB_NAME: ${{ matrix.project }}
           PW_TRACE: ${{ inputs.trace || 'retain-on-failure' }}
         run: |
+          echo "Runner: $(nproc) vCPUs, $(free -g | awk '/Mem:/ {print $2}') GB RAM | trace=$PW_TRACE | tag=$SELECTED_TAG"
           if [ "$SELECTED_TAG" != "all" ]; then
             npx playwright test --project=${{ matrix.project }} --grep "$SELECTED_TAG" --pass-with-no-tests
           else
