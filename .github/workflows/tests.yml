@@ -30,6 +30,7 @@ on:
           - '@dynamic'
           - '@a11y'
           - '@mobile'
+          - '@mobile-only'
           - '@negative'
       trace:
         description: 'Trace: só das falhas (padrão) ou de todos os testes'
@@ -203,6 +204,10 @@ jobs:
             echo "## Resultado da suíte Playwright"
             echo
             jq -r '"| Passaram | Falharam | Instáveis (flaky) | Ignorados | Duração (s) |\n|---:|---:|---:|---:|---:|\n| \(.stats.expected) | \(.stats.unexpected) | \(.stats.flaky) | \(.stats.skipped) | \(.stats.duration / 1000 | floor) |"' results.json
+            if [ "$(jq -r '.stats.expected + .stats.unexpected + .stats.flaky + .stats.skipped' results.json)" -eq 0 ]; then
+              echo
+              echo "> **Nota:** nenhum teste correspondeu à combinação de projeto e tag selecionada (\`webkit\` executa apenas \`@smoke\`; \`mobile-safari\` executa apenas \`@mobile\`)."
+            fi
             echo
             echo "Relatório consolidado (screenshots, traces, logs do navegador e auditorias axe): artefato **playwright-report-merged**."
             echo "Para abrir: baixe o artefato, descompacte e rode \`npx playwright show-report <pasta>\`."
