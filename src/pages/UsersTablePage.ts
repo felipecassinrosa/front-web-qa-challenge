@@ -8,8 +8,6 @@ export class UsersTablePage extends BasePage {
   readonly rows: Locator;
   readonly searchInput: Locator;
   readonly rowsPerPageSelect: Locator;
-  readonly roleFilterSelect: Locator;
-  readonly addUserButton: Locator;
   readonly sortNameHeader: Locator;
   readonly tableInfo: Locator;
 
@@ -20,10 +18,8 @@ export class UsersTablePage extends BasePage {
     this.headers = this.table.locator('thead th');
     this.rows = this.table.locator('tbody tr');
     this.searchInput = this.card.getByPlaceholder('Search users...');
-    // data-testid utilizado como contrato resiliente pois os selects não possuem <label> acessível (RSK-A01)
+    // data-testid utilizado como contrato resiliente pois o select não possui <label> acessível (RSK-A01)
     this.rowsPerPageSelect = this.card.getByTestId('rows-per-page');
-    this.roleFilterSelect = this.card.getByTestId('table-filter');
-    this.addUserButton = this.card.getByRole('button', { name: /\+ Add User/i });
     this.sortNameHeader = this.table.getByTestId('sort-name');
     this.tableInfo = this.card.getByTestId('table-info');
   }
@@ -39,10 +35,6 @@ export class UsersTablePage extends BasePage {
 
   async clearSearch(): Promise<void> {
     await this.searchInput.clear();
-  }
-
-  async filterByRole(role: string): Promise<void> {
-    await this.roleFilterSelect.selectOption(role);
   }
 
   async setRowsPerPage(rowsPerPage: number): Promise<void> {

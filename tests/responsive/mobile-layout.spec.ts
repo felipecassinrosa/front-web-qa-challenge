@@ -1,3 +1,4 @@
+import { USERS_TABLE_SEED } from '@data/userData.factory';
 import { expect, test } from '@fixtures/test.fixtures';
 import { attachEvidence } from '@utils/evidence';
 
@@ -68,7 +69,9 @@ test.describe('Responsividade — layout em resolução mobile', () => {
         await expect(deleteButton).toBeInViewport();
         await deleteButton.click();
 
-        await expect(usersTablePage.tableInfo).toContainText('of 14 entries');
+        await expect(usersTablePage.tableInfo).toContainText(
+          `of ${USERS_TABLE_SEED.initialTotalEntries - 1} entries`,
+        );
         expect(await responsive.hasHorizontalOverflow()).toBe(false);
       });
     },
