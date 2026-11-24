@@ -7,6 +7,7 @@ export class DynamicComponentsPage extends BasePage {
   // Delayed Dropdown (seção #forms -> Dropdown Variants)
   readonly loadDelayedOptionsButton: Locator;
   readonly delayedCategorySelect: Locator;
+  readonly delayedLoadedOptions: Locator;
   readonly delayedDropdownLoader: Locator;
   readonly delayedDropdownResult: Locator;
   readonly delayedDropdownCard: Locator;
@@ -20,6 +21,7 @@ export class DynamicComponentsPage extends BasePage {
     super(page);
     this.loadDelayedOptionsButton = page.getByTestId('load-delayed-dropdown-btn');
     this.delayedCategorySelect = page.getByLabel('Select Category');
+    this.delayedLoadedOptions = this.delayedCategorySelect.locator('option:not([value=""])');
     this.delayedDropdownLoader = page.getByTestId('delayed-dropdown-loader');
     this.delayedDropdownResult = page.getByTestId('delayed-dropdown-result');
     this.delayedDropdownCard = page.getByTestId('delayed-dropdown-card');

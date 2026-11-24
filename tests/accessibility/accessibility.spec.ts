@@ -10,21 +10,21 @@ test.describe('Acessibilidade — labels, auditoria automatizada e teclado', () 
       await test.step('Validar que os campos do formulário têm label associado (A11Y-02)', async () => {
         await form.openSection();
 
-        // getByLabel só resolve se houver associação programática <label for> ↔ <input id>.
-        // Esta verificação explícita é necessária porque o axe-core NÃO detecta label quebrado
-        // quando o campo tem placeholder (ele aceita o placeholder como nome acessível) —
-        // comprovado removendo o `for` do label de e-mail: o axe não acusou nada.
+        // getByLabel só resolve se houver associação programática (<label for> ou <label> envolvendo o campo),
+        // sem aceitar placeholder. Esta checagem explícita é necessária porque o axe-core NÃO acusa label
+        // quebrado quando o campo tem placeholder — comprovado removendo o `for` do label de e-mail.
+        // Validar visibilidade pelo getByLabel garante o vínculo sem acoplar aos `id`s internos do DOM.
         const labelledFields = [
-          { field: form.fullNameInput, id: 'fullName' },
-          { field: form.emailInput, id: 'email' },
-          { field: form.passwordInput, id: 'password' },
-          { field: form.phoneInput, id: 'phone' },
-          { field: form.dobInput, id: 'dob' },
-          { field: form.countrySelect, id: 'country' },
-          { field: form.bioTextarea, id: 'bio' },
+          { label: 'Full Name', field: form.fullNameInput },
+          { label: 'Email Address', field: form.emailInput },
+          { label: 'Password', field: form.passwordInput },
+          { label: 'Phone Number', field: form.phoneInput },
+          { label: 'Date of Birth', field: form.dobInput },
+          { label: 'Country', field: form.countrySelect },
+          { label: 'Bio', field: form.bioTextarea },
         ];
-        for (const { field, id } of labelledFields) {
-          await expect.soft(field, `Campo #${id} associado ao seu label`).toHaveAttribute('id', id);
+        for (const { label, field } of labelledFields) {
+          await expect.soft(field, `Campo "${label}" associado ao seu label`).toBeVisible();
         }
       });
 

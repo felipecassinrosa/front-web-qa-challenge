@@ -63,7 +63,7 @@ test.describe('Responsividade — layout em resolução mobile', () => {
         // A tabela (~706px) é mais larga que a viewport (390px) e fica num container com scroll
         // interno (RSK-U03). O teste garante que a ação continua alcançável e operável.
         await usersTablePage.scrollToSection('tables');
-        const deleteButton = usersTablePage.rows.first().locator('[data-testid^="delete-"]');
+        const deleteButton = usersTablePage.getDeleteButton(usersTablePage.rows.first());
 
         await deleteButton.scrollIntoViewIfNeeded();
         await expect(deleteButton).toBeInViewport();

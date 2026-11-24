@@ -53,9 +53,13 @@ export class UsersTablePage extends BasePage {
     return this.rows.filter({ hasText: text });
   }
 
+  getDeleteButton(row: Locator): Locator {
+    return row.locator('[data-testid^="delete-"]');
+  }
+
   async deleteUserByName(userName: string): Promise<void> {
     const targetRow = this.getRowByText(userName).first();
-    await targetRow.locator('[data-testid^="delete-"]').click();
+    await this.getDeleteButton(targetRow).click();
   }
 
   async getHeaderLabels(): Promise<string[]> {

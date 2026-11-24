@@ -31,9 +31,7 @@ test.describe('Componentes Assíncronos — Delayed Dropdown', () => {
         // nunca por waitForTimeout: o teste tolera tanto uma resposta mais rápida quanto mais lenta.
         await expect(dynamic.delayedCategorySelect).toBeEnabled();
         await expect(dynamic.delayedDropdownLoader).toBeHidden();
-
-        const loadedOptions = dynamic.delayedCategorySelect.locator('option:not([value=""])');
-        await expect(loadedOptions).toHaveText(DELAYED_DROPDOWN_SEED.expectedCategories);
+        await expect(dynamic.delayedLoadedOptions).toHaveText(DELAYED_DROPDOWN_SEED.expectedCategories);
       });
 
       await test.step('Selecionar uma opção carregada e validar o resultado exibido', async () => {
