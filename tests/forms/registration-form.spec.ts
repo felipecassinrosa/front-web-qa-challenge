@@ -22,6 +22,8 @@ test.describe('Formulário de Cadastro — Registration Form', () => {
         await expect(form.fullNameInput).toHaveValue('');
         await expect(form.emailInput).toHaveValue('');
         await expect(form.passwordInput).toHaveValue('');
+        await expect(form.phoneInput).toHaveValue('');
+        await expect(form.dobInput).toHaveValue('');
         await expect(form.countrySelect).toHaveValue('');
         await expect(form.bioTextarea).toHaveValue('');
         await expect(form.termsCheckbox).not.toBeChecked();
