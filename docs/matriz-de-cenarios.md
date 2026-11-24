@@ -1,39 +1,110 @@
 # Matriz de Cenários — PlayLab
 
-Seleção baseada em risco, valor de negócio e custo de manutenção. Dos cenários analisados abaixo, **8 foram selecionados e implementados como testes E2E** (faixa definida no desafio: 5 a 8 testes), cobrindo todos os requisitos obrigatórios sem inflar o custo de manutenção. Cada teste agrupa cenários de referência do enunciado que compartilham o mesmo estado inicial (coluna *Descrição*).
+O enunciado pede de 5 a 8 testes, escolhidos pelos cenários principais, e não a automação de tudo. Esta matriz mostra:
 
-## Legenda de Status
-- **Implementado:** cenário automatizado e validado na suíte base.
-- **Não automatizado:** cenário conscientemente mantido fora da suíte E2E inicial (justificativa na coluna correspondente).
+1. os **8 testes automatizados**, divididos entre o **núcleo** (5 testes que atendem os itens obrigatórios do enunciado) e os **complementares** (3 testes para os maiores riscos que sobram);
+2. a **rastreabilidade de todos os cenários de referência do enunciado**: qual teste cobre cada um ou por que ficou de fora;
+3. outros cenários analisados na aplicação que não constam do enunciado.
 
----
+O raciocínio completo da seleção está em [estrategia-de-testes.md, seção 5](./estrategia-de-testes.md#5-estratégia-de-cobertura).
 
-## 1. Cenários selecionados para automação (8 testes)
+## Legenda
 
-| ID | Jornada | Descrição | Tipo de teste | Risco protegido | Prioridade | Automatizar? | Justificativa | Status |
-|---|---|---|---|---|---|---|---|---|
-| USR-E2E-01 | Tabela de Usuários | **USR-01, 02, 03, 05, 06, 07, 08.** Validar carregamento inicial (15 usuários, 5 por página), cabeçalhos, busca por usuário existente (`Alice Johnson`) com e-mail, papel e situação validados por coluna, paginação (página 2), ordenação por nome (transição ASC → DESC e ordem dos 15 registros) e exclusão de usuário com atualização da contagem (`14 entries`) | Funcional / E2E (`@smoke`, `@users`, `@mobile`) | RSK-F01, RSK-F02, RSK-F03, RSK-U03 | P0 | **Sim** | Protege a jornada principal obrigatória ponta a ponta em um fluxo coeso, rápido e de alto valor; executado em Chromium, WebKit e Mobile Safari | Implementado |
-| USR-NEG-01 | Tabela de Usuários | **USR-04.** Pesquisar por um usuário inexistente e validar que nenhuma linha é exibida na tabela, mantendo os controles íntegros (registrando o achado de UX no contador `Showing 1-0 of 0 entries`) | Negativo / Funcional (`@users`, `@negative`) | RSK-U01 | P1 | **Sim** | Garante comportamento previsível em buscas sem retorno (cenário negativo obrigatório) e protege contra regressões de renderização em estado vazio | Implementado |
-| FRM-E2E-01 | Formulário de Cadastro | **FRM-01, 05.** Preencher o formulário e validar que o reset limpa todos os campos e o contador do Bio; depois preencher com dados fictícios válidos gerados por factory, submeter e validar a mensagem de sucesso (`Registration successful! Welcome aboard.`) | Funcional / E2E (`@smoke`, `@forms`, `@mobile`) | RSK-F04 | P0 | **Sim** | Valida o fluxo feliz crítico de cadastro e limpeza de estado com dados controlados e isolados | Implementado |
-| FRM-NEG-01 | Formulário de Cadastro | **FRM-02, 03, 06.** Submeter o formulário vazio e validar as 4 mensagens de obrigatoriedade; depois corrigir só o nome e manter e-mail malformado, senha < 8 caracteres e termos desmarcados, validando que só o erro corrigido some e que a submissão continua bloqueada | Negativo / Validação (`@forms`, `@negative`) | RSK-F05 | P0 | **Sim** | Como o formulário usa `novalidate`, toda proteção depende da validação JS customizada — alto risco funcional de regressão | Implementado |
-| DYN-ASYNC-01 | Componentes Dinâmicos | **DYN-01, 02, 06, 07.** Validar o estado inicial desabilitado, acionar o `Delayed Dropdown`, observar o loading (`Loading options...`) e o botão desabilitado contra múltiplos cliques, aguardar a habilitação do `<select>` sem `waitForTimeout`, validar as 5 opções carregadas, selecionar uma e validar o resultado exibido | Assíncrono / Sincronização (`@smoke`, `@dynamic`) | RSK-T01 | P0 | **Sim** | Demonstra sincronização orientada a estado observável em carregamento assíncrono (~2s) sem esperas fixas | Implementado |
-| DYN-TBL-01 | Componentes Dinâmicos | **DYN-03, 04, 05.** Ler a `Dynamic Table` mapeando colunas pelos cabeçalhos, antes e após `page.reload()`, e validar as regras estáveis (fruta → cor/estação, formatos e faixas de peso, preço e estoque) sem depender da posição nem dos valores sorteados | Dinâmico / Resiliência (`@dynamic`) | RSK-T02 | P1 | **Sim** | Comprova baixo acoplamento ao DOM e validação de dados variáveis sem depender de índices fixos ou valores estáticos | Implementado |
-| A11Y-01 | Acessibilidade | **A11Y-01, 02, 03, 04, 06, 07.** Validar associação `<label>`/`<input>` no formulário, auditoria `axe-core` sem violações críticas no formulário, painel com `aria-expanded` operado por teclado, ordem e ciclo de foco no Focus Trap e saída por `Escape` com retorno do foco ao botão de origem; anexar a auditoria da página inteira como evidência não bloqueante | Acessibilidade (`@a11y`) | RSK-A04, RSK-A05, RSK-A01..A03 | P1 | **Sim** | Combina validação semântica/teclado (que automação pura não cobre sozinha) com auditoria automatizada `axe-core` e evidência anexada | Implementado |
-| RSP-MOB-01 | Responsividade Mobile | **RSP-02, 03, 04, 05.** Em `iPhone 13 (390×844)`, validar ausência de scroll horizontal, abertura/fechamento do menu hambúrguer, breakpoint `MOBILE`, visibilidade condicional (`mobile-only` vs `desktop-only`), empilhamento dos cards sem sobreposição e acesso à ação de excluir da tabela em tela reduzida | Responsividade / Layout (`@mobile`, `@mobile-only`) | RSK-U02, RSK-U03 | P1 | **Sim** | Protege contra quebras estruturais de layout mobile além da execução funcional da jornada principal em `mobile-safari` | Implementado |
+- **Núcleo:** atende um item obrigatório do enunciado. É o mínimo da suíte; não sai.
+- **Complementar:** protege um risco relevante que o núcleo não cobre. São os primeiros candidatos a sair se a suíte precisar diminuir.
+- **Status:** `Implementado` (automatizado e passando nos 3 projetos), `Coberto em <teste>`, `Parcial`, `Evidência` (registrado no relatório, sem bloquear) ou `Não automatizado`.
 
 ---
 
-## 2. Cenários analisados e NÃO automatizados nesta fase
+## 1. Testes automatizados (8)
 
 | ID | Jornada | Descrição | Tipo de teste | Risco protegido | Prioridade | Automatizar? | Justificativa | Status |
 |---|---|---|---|---|---|---|---|---|
-| USR-07 (dedicado) | Tabela de Usuários | Validar badge de situação (`active`, `inactive`, `pending`) em teste isolado | Funcional | RSK-F01 | P2 | **Não** | A situação já é validada com valor exato na coluna `Status` dentro de `USR-E2E-01`; um teste isolado agregaria pouco valor frente ao limite de 5–8 testes | Coberto em USR-E2E-01 |
-| FRM-07 / FRM-08 | Formulário de Cadastro | Associação de labels e operação por teclado do formulário | Acessibilidade | RSK-A05 | P1 | **Sim (parcial)** | Associação de labels coberta em `A11Y-01`; operação por teclado coberta nos componentes da seção `#a11y`. Preenchimento completo do formulário só por teclado fica como próximo passo | Parcial |
-| RSP-01 | Responsividade | Jornada crítica em desktop | Responsividade | RSK-F01..F05 | P0 | **Sim** | Coberta pela execução de `USR-E2E-01`, `FRM-E2E-01` e `DYN-ASYNC-01` nos projetos desktop `chromium` e `webkit` (`1280×720`) | Coberto |
-| FRM-04 | Formulário de Cadastro | Validar bloqueio do limite de 200 caracteres no campo `Bio` | Funcional / Limite | RSK-F06 | P2 | **Não** | Na inspeção ao vivo constatou-se que a aplicação **não bloqueia** acima de 200 chars (`210/200` submete normalmente); registrado como defeito real a corrigir antes de virar gate de regressão, além de ser ideal para teste unitário/componente | Não automatizado |
-| UPL-01..05 | Upload de Arquivos | Upload de arquivo válido, extensão inválida e limite de 5MB | Funcional | Validação de anexo | P2 | **Não** | Escopo opcional no enunciado; priorizamos os requisitos obrigatórios para manter a suíte focada em 8 testes de altíssimo sinal | Não automatizado |
-| INT-DND / HOVER | Interações Avançadas | Drag and Drop, Hover, Context Menu, Shadow DOM e iFrames | Interação UI | Quebra de widgets secundários | P2 | **Não** | Widgets secundários de demonstração fora da jornada administrativa principal; maior custo de manutenção sem prioridade imediata | Não automatizado |
-| NET-01 | Network & API | Chamar `Fetch Users API` contra `jsonplaceholder.typicode.com` real | Integração / Rede | RSK-T03 | P2 | **Não** | Evita flakiness por dependência de endpoint público de terceiros; recomendado em fase futura com `page.route` (stub determinístico) | Não automatizado |
-| SHP-01 | Shopping / Checkout | Adicionar produtos ao carrinho e finalizar checkout | E2E | Fluxo e-commerce | P2 | **Não** | Fora do contexto principal definido no enunciado (plataforma administrativa centrada em usuários, formulários e componentes dinâmicos) | Não automatizado |
-| A11Y-MANUAL | Acessibilidade | Navegação com leitor de tela (VoiceOver/NVDA), zoom 200% e qualidade textual de mensagens | Acessibilidade Manual | Experiência assistiva real | P1 | **Não** | Ferramentas automatizadas não substituem validação humana de semântica, compreensão e operação real com tecnologias assistivas | Não automatizado |
-| PERF-01 | Carga / Stress | Execução concorrente massiva ou varredura de segurança | Não funcional | Disponibilidade / AppSec | N/A | **Não** | Explicitamente proibido pelas restrições do desafio (Seção 15) | Não automatizado |
+| USR-E2E-01 | Tabela de Usuários | Carregamento (5 de 15 usuários), cabeçalhos, busca por `Alice Johnson` com e-mail, papel e situação validados por coluna, paginação (página 2), ordenação por nome (transição ASC → DESC e ordem dos 15 registros) e exclusão com atualização da contagem | Funcional / E2E (`@smoke`, `@users`, `@mobile`) | RSK-F01, RSK-F02, RSK-F03, RSK-F07 | P0 | **Sim** | **Núcleo** — jornada principal obrigatória. Um único fluxo segue a jornada do enunciado; a exclusão foi a ação escolhida por ter o maior impacto (remove sem confirmação). Roda também no iPhone 13, o que atende a execução mobile obrigatória | Implementado |
+| FRM-E2E-01 | Formulário de Cadastro | Preencher e aplicar reset (todos os campos e o contador do Bio voltam ao estado inicial); preencher com dados da factory, submeter e validar a mensagem de sucesso | Funcional / E2E (`@smoke`, `@forms`, `@mobile`) | RSK-F04 | P0 | **Sim** | **Núcleo** — cenário de formulário obrigatório. O cadastro válido é o caminho que o usuário precisa concluir; o reset entra no mesmo teste porque parte do mesmo estado (formulário preenchido) | Implementado |
+| FRM-NEG-01 | Formulário de Cadastro | Submeter vazio e validar as 4 mensagens de obrigatoriedade; corrigir só o nome e manter e-mail malformado, senha curta e termos desmarcados, validando que só o erro corrigido some e a submissão continua bloqueada | Negativo / Validação (`@forms`, `@negative`) | RSK-F05 | P0 | **Sim** | **Núcleo** — cenário negativo obrigatório. Entre os negativos, é o de maior probabilidade de regressão: o formulário usa `novalidate`, então toda a proteção depende do JavaScript da página | Implementado |
+| DYN-ASYNC-01 | Componentes Dinâmicos | Estado inicial desabilitado; acionar o `Delayed Dropdown`, validar loading e botão desabilitado contra múltiplos cliques, aguardar a habilitação do `<select>` sem espera fixa, validar as 5 opções carregadas e selecionar uma | Assíncrono / Sincronização (`@smoke`, `@dynamic`) | RSK-T01 | P0 | **Sim** | **Núcleo** — componente assíncrono obrigatório. O carregamento com atraso (~2 s) é a principal fonte de testes instáveis; o teste prova a sincronização por estado observável | Implementado |
+| A11Y-01 | Acessibilidade | Associação `<label>` ↔ campo no formulário; auditoria `axe-core` sem violações críticas no formulário; auditoria da página inteira anexada como evidência; diálogo operado só por teclado (ordem de foco, ciclo e saída com `Escape` devolvendo o foco ao botão de origem) | Acessibilidade (`@a11y`) | RSK-A04, RSK-A05 (e evidência de RSK-A01..A07) | P1 | **Sim** | **Núcleo** — validação de acessibilidade obrigatória. Cobre os dois riscos de maior impacto para quem usa teclado ou leitor de tela: labels do formulário e armadilha de foco em diálogo. A checagem explícita de labels é necessária porque o axe não detecta label quebrado em campo com placeholder | Implementado |
+| USR-NEG-01 | Tabela de Usuários | Pesquisar usuário inexistente, validar 0 linhas e contador `of 0 entries`; limpar a busca e validar que a listagem volta | Negativo / Funcional (`@users`, `@negative`) | RSK-U01 | P1 | **Sim** | **Complementar** — estado vazio da busca, onde foi encontrado um defeito real (`Showing 1-0 of 0 entries`, sem mensagem de estado vazio). Custo baixo | Implementado |
+| DYN-TBL-01 | Componentes Dinâmicos | Ler a `Dynamic Table` pelos cabeçalhos, antes e depois de `page.reload()`, e validar as regras estáveis (fruta → cor/estação, formatos e faixas de peso, preço e estoque) sem depender da posição nem dos valores sorteados | Dinâmico / Resiliência (`@dynamic`) | RSK-T02 | P1 | **Sim** | **Complementar** — o maior risco técnico de seletor frágil (colunas e linhas mudam a cada carga). O `DYN-ASYNC-01` não cobre esse tipo de variação | Implementado |
+| RSP-MOB-01 | Responsividade Mobile | Em `iPhone 13 (390×844)`: sem scroll horizontal, menu hambúrguer abre e fecha, breakpoint `MOBILE`, visibilidade condicional, cards empilhados sem sobreposição e botão de excluir da tabela alcançável | Responsividade / Layout (`@mobile`, `@mobile-only`) | RSK-U02, RSK-U03 | P1 | **Sim** | **Complementar** — rodar a jornada no iPhone não detecta scroll horizontal, sobreposição nem menu quebrado; este teste valida o layout e o acesso às ações em tela pequena | Implementado |
+
+---
+
+## 2. Rastreabilidade dos cenários de referência do enunciado
+
+Cada cenário listado no enunciado, com a decisão tomada. Os cenários foram agrupados em poucos testes quando partem do mesmo estado inicial (por exemplo, toda a jornada da tabela em `USR-E2E-01`), o que mantém a suíte pequena sem perder cobertura.
+
+### 2.1 Tabela de usuários (seção 4)
+
+| ID | Cenário | Prioridade | Automatizado? | Teste / justificativa |
+|---|---|---|---|---|
+| USR-01 | Carregamento da tabela | P0 | Sim | `USR-E2E-01` — 5 linhas e `Showing 1-5 of 15 entries` |
+| USR-02 | Estrutura e cabeçalhos | P0 | Sim | `USR-E2E-01` — lista exata de cabeçalhos |
+| USR-03 | Localizar usuário existente | P0 | Sim | `USR-E2E-01` — busca por `Alice Johnson` |
+| USR-04 | Usuário inexistente | P1 | Sim | `USR-NEG-01` |
+| USR-05 | Ordenar por uma coluna | P0 | Sim | `USR-E2E-01` — coluna Name. Todas as colunas passam pela mesma função de comparação do app; testar uma basta |
+| USR-06 | Navegar entre páginas | P0 | Sim | `USR-E2E-01` — página 2 e volta para a 1 |
+| USR-07 | Situação do usuário | P0 | Sim | `USR-E2E-01` — `Status` exato (`active`) na coluna. Sem teste dedicado para cada badge: agregaria pouco frente ao limite de 8 testes |
+| USR-08 | Executar e validar uma ação | P0 | Sim | `USR-E2E-01` — exclusão, a ação de maior impacto (remove sem confirmação, RSK-F07). Editar e `+ Add User` ficaram fora (seção 3) |
+
+### 2.2 Formulário (seção 5.1)
+
+| ID | Cenário | Prioridade | Automatizado? | Teste / justificativa |
+|---|---|---|---|---|
+| FRM-01 | Dados válidos | P0 | Sim | `FRM-E2E-01` |
+| FRM-02 | Campos obrigatórios vazios | P0 | Sim | `FRM-NEG-01` |
+| FRM-03 | E-mail inválido | P0 | Sim | `FRM-NEG-01` |
+| FRM-04 | Limite de caracteres | P2 | Não | Defeito conhecido: o Bio aceita `210/200` e cadastra (RSK-F06). Automatizar hoje geraria um teste sempre vermelho ou um teste que aprova o defeito. Vira gate depois da correção, de preferência como teste de componente. O Full Name tem `maxlength="50"`, regra garantida pelo próprio navegador |
+| FRM-05 | Reset do formulário | P0 | Sim | `FRM-E2E-01` |
+| FRM-06 | Mensagens de erro | P0 | Sim | `FRM-NEG-01` — texto exato de cada mensagem |
+| FRM-07 | Associação campos ↔ labels | P1 | Sim | `A11Y-01` — checagem explícita (o axe não pega label quebrado quando há placeholder) |
+| FRM-08 | Operação por teclado | P2 | Não | Os campos são controles nativos (`input`, `select`, `checkbox`), que já têm suporte de teclado do navegador. O risco de teclado está nos componentes customizados, como o diálogo coberto em `A11Y-01`. Recomendado como checagem manual |
+
+### 2.3 Componentes dinâmicos e assíncronos (seção 5.2)
+
+| ID | Cenário | Prioridade | Automatizado? | Teste / justificativa |
+|---|---|---|---|---|
+| DYN-01 | Aguardar dropdown assíncrono | P0 | Sim | `DYN-ASYNC-01` |
+| DYN-02 | Selecionar opção carregada | P0 | Sim | `DYN-ASYNC-01` |
+| DYN-03 | Colunas que mudam de posição | P1 | Sim | `DYN-TBL-01` |
+| DYN-04 | Comportamento após recarregar | P1 | Sim | `DYN-TBL-01` — `page.reload()` |
+| DYN-05 | Dados dinâmicos sem valores fixos | P1 | Sim | `DYN-TBL-01` — valida regras e faixas, não os valores sorteados |
+| DYN-06 | Múltiplos cliques | P0 | Sim | `DYN-ASYNC-01` — o botão fica desabilitado durante a carga |
+| DYN-07 | Estado de carregamento | P0 | Sim | `DYN-ASYNC-01` — `Loading options...` visível e depois oculto |
+| DYN-08 | Opção indisponível | P2 | Não | Na app, os planos `Sold Out` e `Coming Soon` usam o atributo `disabled` nativo do `<option>`: o próprio navegador impede a seleção. O risco (alguém remover o atributo) é melhor coberto por teste de componente |
+
+### 2.4 Upload, interações, acessibilidade e responsividade (seções 5.3 a 5.6)
+
+| ID | Cenário | Prioridade | Automatizado? | Teste / justificativa |
+|---|---|---|---|---|
+| UPL-01..05 | Upload de arquivo | P2 | Não | Opcional no enunciado e fora das jornadas administrativas priorizadas |
+| — | Drag and drop, hover, menu de contexto, iframes, Shadow DOM | P2 | Não | Widgets de demonstração, fora das jornadas administrativas; custo de manutenção alto sem risco de negócio identificado |
+| — | Modais | P1 | Parcial | O diálogo com foco preso (`role="dialog"`, `aria-modal`) é coberto em `A11Y-01`; a seção *Modals & Alerts* ficou fora |
+| A11Y-01 | Nomes acessíveis dos principais controles | P1 | Evidência | A auditoria da página inteira em `A11Y-01` registra `button-name` e `select-name` sem bloquear: a tabela de usuários já tem essas violações (RSK-A01/A02). Vira gate quando o produto corrigir |
+| A11Y-02 | Labels do formulário | P1 | Sim | `A11Y-01` |
+| A11Y-03 | Navegação por teclado | P1 | Sim | `A11Y-01` — diálogo operado só com Enter, Tab, Shift+Tab e Escape |
+| A11Y-04 | Ordem de foco | P1 | Sim | `A11Y-01` — campo → Action → Close Trap → volta ao campo |
+| A11Y-05 | Hierarquia de títulos | P2 | Evidência | Registrado na auditoria da página inteira (`heading-order`, regra *best-practice*), sem bloquear: já existe salto H2 → H4 na seção Shopping (RSK-A06) |
+| A11Y-06 | Análise automatizada | P1 | Sim | `A11Y-01` — axe-core no formulário (bloqueia em violação crítica) e na página inteira (evidência) |
+| A11Y-07 | Modal sem armadilha de teclado | P1 | Sim | `A11Y-01` — Escape fecha o diálogo e devolve o foco ao botão de origem |
+| RSP-01 | Jornada crítica em desktop | P0 | Sim | `USR-E2E-01`, `FRM-E2E-01` e `DYN-ASYNC-01` em `chromium` e `webkit` (1280×720) |
+| RSP-02 | Jornada crítica em mobile | P0 | Sim | `USR-E2E-01` e `FRM-E2E-01` no `mobile-safari` (iPhone 13) |
+| RSP-03 | Sem sobreposição relevante | P1 | Sim | `RSP-MOB-01` — cards empilhados, sem se sobrepor |
+| RSP-04 | Sem scroll horizontal indevido | P1 | Sim | `RSP-MOB-01` |
+| RSP-05 | Acesso às ações em tela reduzida | P1 | Sim | `RSP-MOB-01` — menu hambúrguer e botão de excluir da tabela |
+
+Compatibilidade entre navegadores (seção 5.7): Chromium com a suíte completa, WebKit desktop com `@smoke` e WebKit mobile com `@mobile`. Justificativa em [estrategia-de-testes.md, seção 8](./estrategia-de-testes.md#8-navegadores-e-resoluções).
+
+---
+
+## 3. Outros cenários analisados (fora da lista do enunciado)
+
+| ID | Jornada | Descrição | Tipo de teste | Risco protegido | Prioridade | Automatizar? | Justificativa | Status |
+|---|---|---|---|---|---|---|---|---|
+| USR-FLT | Tabela de Usuários | Filtrar por papel (`All Roles` / `Admin` / ...) | Funcional | RSK-F02 | P2 | **Não** | A jornada pede "pesquisar, filtrar **ou** localizar"; a busca já cobre a localização, e no código da app o filtro por papel é aplicado no mesmo trecho que a busca | Não automatizado |
+| USR-EDT | Tabela de Usuários | Editar usuário e adicionar usuário (`+ Add User`) | Funcional | RSK-F03 | P2 | **Não** | A exclusão foi escolhida como a ação a validar por ter o maior impacto; edição e inclusão ficam como próxima expansão | Não automatizado |
+| NET-01 | Network & API | `Fetch Users API` contra `jsonplaceholder.typicode.com` real | Integração / Rede | RSK-T03 | P2 | **Não** | Dependência de serviço público de terceiros deixaria a pipeline instável; recomendado com `page.route` (resposta simulada) | Não automatizado |
+| SHP-01 | Shopping / Checkout | Adicionar produtos ao carrinho e finalizar checkout | E2E | Fluxo de e-commerce | P2 | **Não** | Fora do contexto do enunciado (plataforma administrativa centrada em usuários, formulários e componentes dinâmicos) | Não automatizado |
+| A11Y-MANUAL | Acessibilidade | Leitor de tela (VoiceOver/NVDA), zoom 200% e clareza das mensagens | Acessibilidade manual | Experiência assistiva real | P1 | **Não** | Ferramentas automatizadas não substituem validação humana com tecnologia assistiva | Não automatizado (manual) |
+| PERF-01 | Carga / Segurança | Execução concorrente massiva ou varredura de segurança | Não funcional | Disponibilidade / AppSec | N/A | **Não** | Proibido pelas restrições do enunciado (seção 15) | Não automatizado |

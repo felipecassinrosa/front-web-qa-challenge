@@ -17,10 +17,10 @@ A estratégia cobre obrigatoriamente os pilares críticos identificados na anál
 - **Componentes Dinâmicos e Assíncronos:**
   - *Delayed Dropdown* (carregamento assíncrono com estado de loading e habilitação tardia);
   - *Dynamic Table* (`#dynamicFruitTable`, cujas colunas e linhas mudam de ordem a cada reload com valores aleatórios).
-- **Acessibilidade (`a11y`):** associação semântica de labels no formulário, navegação por teclado, atributos ARIA (`aria-expanded`, `role="dialog"` / focus trap) e análise automatizada via `@axe-core/playwright`.
+- **Acessibilidade (`a11y`):** associação de labels no formulário, operação por teclado de um diálogo (`role="dialog"` com foco preso) e análise automatizada via `@axe-core/playwright`.
 - **Responsividade (Mobile):** validação em viewport mobile (`iPhone 13 — 390×844`) garantindo ausência de overflow horizontal global, menu responsivo, empilhamento de layout e operação da jornada crítica em tela reduzida.
 - **Compatibilidade entre navegadores:** estratégia multi-engine combinando **Chromium** e **WebKit**.
-- **Execução contínua e diagnóstico:** pipeline GitHub Actions com relatório HTML, screenshots, vídeos e traces retidos em falhas.
+- **Execução contínua e diagnóstico:** pipeline GitHub Actions com relatório HTML consolidado, prints de evidência em todo teste, logs do navegador, traces e, em falha, vídeos.
 
 ---
 
@@ -57,16 +57,57 @@ A análise detalhada está registrada em [matriz-de-riscos.md](./matriz-de-risco
 
 ## 5. Estratégia de cobertura
 
-A suíte adota uma abordagem **orientada a risco e ortogonalidade**, distribuindo **8 cenários E2E** sem sobreposição desnecessária:
+O enunciado pede de 5 a 8 testes e deixa claro que não é para automatizar tudo, e sim os cenários principais, escolhidos por risco, valor e custo de manutenção. A seleção seguiu três filtros, nesta ordem.
 
-| Categoria | Qtd. | Tags | Objetivo principal |
+### 5.1 Filtro 1 — Itens obrigatórios do enunciado (núcleo: 5 testes)
+
+Cada item obrigatório é atendido pelo cenário de maior risco da sua categoria:
+
+| Item obrigatório | Teste | Por que este |
+|---|---|---|
+| Jornada principal da tabela de usuários | `USR-E2E-01` (P0) | Segue a jornada do enunciado em um único fluxo; a ação validada é a exclusão, a de maior impacto (remove sem confirmação, RSK-F07) |
+| Cenário de formulário | `FRM-E2E-01` (P0) | O cadastro válido é o caminho que o usuário precisa concluir; o reset entra junto porque parte do mesmo estado (formulário preenchido) |
+| Cenário negativo | `FRM-NEG-01` (P0) | Entre os negativos, é o de maior probabilidade de regressão: o formulário usa `novalidate`, então toda a proteção depende do JavaScript da página |
+| Componente dinâmico ou assíncrono | `DYN-ASYNC-01` (P0) | Carregamento com atraso é a principal fonte de testes instáveis; prova a sincronização por estado observável, sem espera fixa |
+| Validação de acessibilidade | `A11Y-01` (P1) | Cobre os riscos de maior impacto para quem usa teclado ou leitor de tela: labels do formulário e armadilha de foco em diálogo, mais a auditoria automatizada |
+| Execução em resolução mobile | `USR-E2E-01` e `FRM-E2E-01` no iPhone 13 | Não exigiu teste novo: as jornadas P0 rodam também no projeto `mobile-safari` |
+
+### 5.2 Filtro 2 — Maior risco que sobra, com baixo custo (3 complementares)
+
+Com o núcleo em 5 testes, as 3 vagas restantes da faixa foram para riscos que o núcleo não pega:
+
+| Teste | Risco que o núcleo não cobre |
+|---|---|
+| `USR-NEG-01` (P1) | Estado vazio da busca, onde foi encontrado um defeito real (`Showing 1-0 of 0 entries`, sem mensagem de estado vazio). Custo baixo: um campo e poucas asserções |
+| `DYN-TBL-01` (P1) | Tabela com colunas e linhas que mudam a cada carga: o maior risco técnico de seletor frágil. Mostra a leitura pelo cabeçalho, sem índice fixo nem valor sorteado |
+| `RSP-MOB-01` (P1) | Rodar a jornada no iPhone não detecta scroll horizontal, sobreposição nem menu quebrado; este teste valida o layout e o acesso às ações em tela pequena |
+
+**Se a suíte precisasse diminuir**, os 5 do núcleo são o mínimo que atende o enunciado; os 3 complementares são os primeiros a sair.
+
+### 5.3 Filtro 3 — O que ficou de fora
+
+Todo cenário de referência do enunciado tem uma decisão registrada na [matriz de cenários](./matriz-de-cenarios.md#2-rastreabilidade-dos-cenários-de-referência-do-enunciado): qual teste o cobre ou por que não foi automatizado. Os motivos mais comuns:
+
+- **Opcional e fora das jornadas administrativas:** upload, drag and drop, hover, iframes, Shadow DOM.
+- **Regra garantida pelo próprio HTML:** opção `disabled`, `maxlength` — o risco está na marcação e pertence a teste de componente.
+- **Defeito conhecido:** o limite do Bio (aceita `210/200`); automatizar agora geraria um teste sempre vermelho ou um teste que aprova o defeito.
+- **Dependência externa:** a API pública da seção Network deixaria a pipeline instável.
+- **Validação humana:** leitor de tela, zoom e clareza das mensagens.
+
+### 5.4 Escopo dentro de cada teste
+
+Cada teste valida o comportamento principal, não todas as variações: a busca usa um usuário existente, não todas as combinações; a ordenação valida a coluna Name, não todas as colunas (todas usam a mesma função de comparação no código da app); o formulário valida um cadastro válido e duas combinações inválidas, não todas as regras de cada campo — isso pertence a teste unitário ou de componente.
+
+### 5.5 Distribuição
+
+| Categoria | Qtd. | Testes | Tags |
 |---|---:|---|---|
-| Tabela de Usuários (Positivo + Negativo) | 2 | `@smoke`, `@users`, `@negative`, `@mobile` | Proteger jornada principal CRUD/leitura/navegação e estado vazio |
-| Formulário de Cadastro (Positivo + Negativo) | 2 | `@smoke`, `@forms`, `@negative`, `@mobile` | Garantir cadastro válido, reset e bloqueio de dados inválidos |
-| Componentes Dinâmicos e Assíncronos | 2 | `@smoke`, `@dynamic` | Validar sincronização por estado observável e independência de posição |
-| Acessibilidade (`a11y`) | 1 | `@a11y` | Validar labels, teclado, ARIA/focus trap e auditoria `axe-core` |
-| Responsividade Mobile | 1 | `@mobile`, `@mobile-only` | Validar layout sem overflow, breakpoints e usabilidade em tela reduzida |
-| **Total** | **8** | — | Cobertura equilibrada dentro da faixa alvo (5 a 8 testes) |
+| Tabela de Usuários | 2 | `USR-E2E-01` (núcleo), `USR-NEG-01` (complementar) | `@smoke`, `@users`, `@negative`, `@mobile` |
+| Formulário de Cadastro | 2 | `FRM-E2E-01`, `FRM-NEG-01` (núcleo) | `@smoke`, `@forms`, `@negative`, `@mobile` |
+| Componentes Dinâmicos e Assíncronos | 2 | `DYN-ASYNC-01` (núcleo), `DYN-TBL-01` (complementar) | `@smoke`, `@dynamic` |
+| Acessibilidade | 1 | `A11Y-01` (núcleo) | `@a11y` |
+| Responsividade Mobile | 1 | `RSP-MOB-01` (complementar) | `@mobile`, `@mobile-only` |
+| **Total** | **8** | 5 núcleo + 3 complementares | — |
 
 ---
 
@@ -78,15 +119,17 @@ Os cenários foram classificados em **P0, P1 e P2** combinando três critérios:
 2. **Probabilidade de regressão técnica:** envolve estado assíncrono, mutação de DOM, validação customizada (`novalidate`) ou adaptação de layout?
 3. **Relação valor vs. custo de manutenção em E2E:** o teste entrega sinal confiável com baixo risco de flakiness?
 
-- **P0 (`@smoke`):** fluxos críticos que bloqueiam uso principal — executam em **PRs**, **Chromium**, **WebKit** e (quando aplicável) **Mobile Safari**.
-- **P1:** cenários negativos críticos, comportamentos dinâmicos complementares, acessibilidade e responsividade — executam em **Chromium** (ou **Mobile Safari** para `@mobile-only`) em todo push/PR.
-- **P2:** fluxos secundários ou redundantes — documentados na matriz e mantidos fora da suíte E2E inicial.
+- **P0:** a falha bloqueia a jornada principal ou deixa passar dado inválido — `USR-E2E-01`, `FRM-E2E-01`, `FRM-NEG-01`, `DYN-ASYNC-01`. Os três caminhos felizes P0 têm a tag `@smoke` e rodam também no WebKit; `FRM-NEG-01` roda só no Chromium, porque a validação é JavaScript da própria página e não depende do motor de renderização.
+- **P1:** risco relevante que não bloqueia a jornada principal — `USR-NEG-01`, `DYN-TBL-01`, `A11Y-01`, `RSP-MOB-01`. Rodam no Chromium (ou no iPhone 13, no caso de `@mobile-only`).
+- **P2:** secundários ou redundantes — documentados na matriz e mantidos fora da suíte.
+
+Prioridade (risco) e obrigatoriedade são coisas diferentes: `A11Y-01` é P1 pelo risco atual, mas está no núcleo porque o enunciado exige uma validação de acessibilidade.
 
 ### Frequência recomendada de execução
 
-- **A cada Pull Request:** `@smoke` em Chromium + WebKit + Mobile Safari (feedback rápido < 2 min) e regressão completa em Chromium.
-- **Merge na `main`:** suíte completa nos 3 projetos configurados (`chromium`, `webkit` smoke, `mobile-safari`).
-- **Execução sob demanda (`workflow_dispatch`):** filtragem manual por projeto/navegador e por tag para investigação rápida ou validação pré-release.
+- **Cada push e pull request na `main`:** os 3 projetos em paralelo (Chromium com a suíte completa, WebKit com `@smoke`, iPhone 13 com `@mobile`) — cerca de 2 minutos de pipeline.
+- **Sob demanda (`workflow_dispatch`):** filtro por navegador e por tag, para investigar uma falha ou validar antes de uma entrega.
+- **Recomendado num produto real:** execução diária agendada contra o ambiente de homologação. Não foi configurada aqui para não gerar execuções recorrentes contra uma aplicação de terceiros (restrição da seção 15).
 
 ---
 
@@ -99,8 +142,9 @@ Os cenários foram classificados em **P0, P1 e P2** combinando três critérios:
   3. Zero XPath absoluto e zero dependência posicional frágil (`nth-child`).
 - **Sincronização:** 100% baseada em auto-waiting e web-first assertions (`toBeVisible`, `toBeEnabled`, `toBeHidden`, `toHaveText`, `toHaveCount`) — **proibido `waitForTimeout`** como mecanismo de sincronização.
 - **Isolamento e dados:** cada teste inicia em página limpa (`BrowserContext` isolado do Playwright), usa dados sintéticos gerados por factory e não depende da ordem de execução (`fullyParallel: true` com workers controlados: 3 local / 2 em CI).
-- **Controle de flakiness:** timeouts configurados centralmente, `retries: 1` apenas no CI (0 local para expor instabilidades imediatamente durante o desenvolvimento), retenção de `trace`, `screenshot` e `video` em caso de falha, e nenhuma asserção sobre comportamento aleatório (ex.: não se exige que a Dynamic Table mude de ordem após o reload). A suíte foi validada com `--repeat-each=3` (39/39).
-- **Validação das asserções:** além de passar, cada asserção crítica foi checada com mutação manual (alterar o valor esperado e confirmar que o teste falha). Isso revelou um falso positivo na ordenação ASC (a página 1 já vem em ordem alfabética), corrigido para validar a transição ASC → DESC.
+- **Controle de flakiness:** timeouts configurados centralmente, `retries: 1` apenas no CI (0 local para expor instabilidades imediatamente durante o desenvolvimento) e nenhuma asserção sobre comportamento aleatório (ex.: não se exige que a Dynamic Table mude de ordem após o reload). A suíte foi validada com `--repeat-each=3` (39/39).
+- **Evidências:** cada teste anexa ao relatório um print do estado final validado (ex.: tabela após a exclusão, mensagem de sucesso, menu mobile aberto); a config tira um screenshot ao fim de todo teste; uma fixture automática anexa os logs do navegador (erros de console, exceções e requisições com falha); o CI grava trace de todos os testes; vídeo só em falha, por ser o artefato mais pesado.
+- **Validação das asserções:** além de passar, cada asserção crítica foi checada com mutação manual (alterar o valor esperado ou a página e confirmar que o teste falha). Isso revelou um falso positivo na ordenação ASC (a página 1 já vem em ordem alfabética), corrigido para validar a transição ASC → DESC, e mostrou que o axe não detecta label quebrado em campo com placeholder — por isso a checagem explícita de labels ficou no `A11Y-01`.
 - **Pipeline:** matriz por projeto calculada no job `plan` (com filtro manual por navegador e por tag), cache de dependências e navegadores, artefatos publicados mesmo com falha e relatório HTML único consolidado a partir dos relatórios `blob` de cada projeto.
 
 ---
@@ -127,7 +171,7 @@ Os cenários foram classificados em **P0, P1 e P2** combinando três critérios:
 ### Critérios de saída (Exit Criteria)
 - 100% dos cenários automatizados verdes em `chromium`, `webkit` (`@smoke`) e `mobile-safari` (`@mobile`).
 - Zero usos de `waitForTimeout`, `test.only` ou seletores frágeis (XPath absoluto / índices fixos).
-- Relatório HTML gerado e artefatos de diagnóstico configurados na pipeline (com preservação mesmo em falha).
+- Relatório HTML consolidado publicado na pipeline, com prints de evidência, logs do navegador e traces de todos os testes.
 - Documentação estratégica, matrizes e README atualizados com os achados reais.
 
 ---
@@ -140,6 +184,7 @@ Os cenários foram classificados em **P0, P1 e P2** combinando três critérios:
   - experiência real com leitores de tela (VoiceOver / NVDA / JAWS);
   - coerência lógica da ordem de foco em fluxos complexos e visibilidade clara do indicador de foco (`focus-visible`);
   - compreensão cognitiva, zoom até 200% e operação com tecnologias assistivas por voz.
+- **O axe aceita placeholder como nome acessível:** removendo o `for` do label de e-mail, a auditoria continuou sem violações, porque o campo tem `placeholder`. Por isso a associação de labels é verificada explicitamente no `A11Y-01`, e não só pelo axe.
 - **Violações pré-existentes no alvo:** como o PlayLab contém violações de contraste e acessibilidade próprias da aplicação, a auditoria automatizada é escopada por critérios críticos e anexada ao relatório para diagnóstico transparente, em vez de mascarar defeitos ou gerar falsos negativos.
 
 ---

@@ -19,18 +19,28 @@ A documentação estratégica completa está em:
 
 ## 3. Escopo implementado
 
-A suíte tem **8 testes** (dentro da faixa de 5 a 8 exigida), todos implementados e passando em `chromium`, `webkit` e `mobile-safari` — **13 execuções** no total, conforme a estratégia de navegadores da seção 8:
+A suíte tem **8 testes** (dentro da faixa de 5 a 8 exigida), todos passando em `chromium`, `webkit` e `mobile-safari` — **13 execuções** no total, conforme a estratégia de navegadores da seção 8.
 
-| ID | Módulo | Cenários de referência cobertos | Tags | Arquivo |
-|---|---|---|---|---|
-| `USR-E2E-01` | Tabela de Usuários — jornada principal | USR-01, 02, 03, 05, 06, 07, 08 | `@smoke`, `@users`, `@mobile` | `tests/users/user-management.spec.ts` |
-| `USR-NEG-01` | Tabela de Usuários — busca sem resultado | USR-04 | `@users`, `@negative` | `tests/users/user-management.spec.ts` |
-| `FRM-E2E-01` | Formulário — reset + cadastro válido | FRM-01, 05 | `@smoke`, `@forms`, `@mobile` | `tests/forms/registration-form.spec.ts` |
-| `FRM-NEG-01` | Formulário — obrigatórios, e-mail e senha inválidos | FRM-02, 03, 06 | `@forms`, `@negative` | `tests/forms/registration-form.spec.ts` |
-| `DYN-ASYNC-01` | Delayed Dropdown — carga assíncrona | DYN-01, 02, 06, 07 | `@smoke`, `@dynamic` | `tests/dynamic/delayed-dropdown.spec.ts` |
-| `DYN-TBL-01` | Dynamic Table — colunas e linhas embaralhadas | DYN-03, 04, 05 | `@dynamic` | `tests/dynamic/dynamic-table.spec.ts` |
-| `A11Y-01` | Acessibilidade — labels, teclado, foco, `axe-core` | A11Y-01, 02, 03, 04, 06, 07 | `@a11y` | `tests/accessibility/accessibility.spec.ts` |
-| `RSP-MOB-01` | Responsividade — layout mobile | RSP-02, 03, 04, 05 | `@mobile`, `@mobile-only` | `tests/responsive/mobile-layout.spec.ts` |
+### Por que estes 8
+
+O enunciado pede os cenários principais, não todos. A escolha seguiu três filtros (detalhados na [estratégia, seção 5](./docs/estrategia-de-testes.md#5-estratégia-de-cobertura)):
+
+1. **Núcleo (5 testes):** um teste para cada item obrigatório do enunciado — jornada da tabela, formulário, cenário negativo, componente assíncrono e acessibilidade —, escolhendo em cada categoria o cenário de maior risco. A execução mobile obrigatória não exigiu teste novo: as jornadas P0 rodam também no iPhone 13.
+2. **Complementares (3 testes):** as vagas restantes da faixa foram para riscos que o núcleo não pega — estado vazio da busca (onde há um defeito real), tabela com colunas que mudam de posição e layout mobile. São os primeiros a sair se a suíte precisar diminuir.
+3. **Fora:** cada cenário de referência do enunciado tem a decisão registrada na [matriz de cenários](./docs/matriz-de-cenarios.md#2-rastreabilidade-dos-cenários-de-referência-do-enunciado) — qual teste o cobre ou por que não foi automatizado.
+
+Dentro de cada teste, só o comportamento principal é validado (um usuário na busca, uma coluna na ordenação, um cadastro válido e duas combinações inválidas no formulário); variações exaustivas de regra pertencem a testes unitários ou de componente.
+
+| ID | O que valida | Grupo | Prioridade | Referências do enunciado | Tags | Arquivo |
+|---|---|---|---|---|---|---|
+| `USR-E2E-01` | Jornada da tabela: carga, busca, paginação, ordenação e exclusão | Núcleo | P0 | USR-01, 02, 03, 05, 06, 07, 08 · RSP-01, 02 | `@smoke`, `@users`, `@mobile` | `tests/users/user-management.spec.ts` |
+| `FRM-E2E-01` | Reset e cadastro válido | Núcleo | P0 | FRM-01, 05 · RSP-01, 02 | `@smoke`, `@forms`, `@mobile` | `tests/forms/registration-form.spec.ts` |
+| `FRM-NEG-01` | Obrigatórios, e-mail e senha inválidos | Núcleo | P0 | FRM-02, 03, 06 | `@forms`, `@negative` | `tests/forms/registration-form.spec.ts` |
+| `DYN-ASYNC-01` | Dropdown com carga assíncrona | Núcleo | P0 | DYN-01, 02, 06, 07 · RSP-01 | `@smoke`, `@dynamic` | `tests/dynamic/delayed-dropdown.spec.ts` |
+| `A11Y-01` | Labels, axe-core e diálogo por teclado | Núcleo | P1 | A11Y-02, 03, 04, 06, 07 · FRM-07 | `@a11y` | `tests/accessibility/accessibility.spec.ts` |
+| `USR-NEG-01` | Busca sem resultado | Complementar | P1 | USR-04 | `@users`, `@negative` | `tests/users/user-management.spec.ts` |
+| `DYN-TBL-01` | Tabela com colunas e linhas embaralhadas | Complementar | P1 | DYN-03, 04, 05 | `@dynamic` | `tests/dynamic/dynamic-table.spec.ts` |
+| `RSP-MOB-01` | Layout e ações em tela de celular | Complementar | P1 | RSP-03, 04, 05 | `@mobile`, `@mobile-only` | `tests/responsive/mobile-layout.spec.ts` |
 
 ---
 
@@ -39,7 +49,7 @@ A suíte tem **8 testes** (dentro da faixa de 5 a 8 exigida), todos implementado
 - **Playwright Test** (`@playwright/test`)
 - **TypeScript** (modo `strict`)
 - **Node.js** (v24 LTS no CI / >= 20 local)
-- **`@axe-core/playwright`** (auditoria automatizada WCAG 2.0/2.1 A e AA)
+- **`@axe-core/playwright`** (auditoria automatizada WCAG 2.0/2.1 A e AA; regras *best-practice* só como evidência)
 - **`dotenv`** (configuração centralizada via variáveis de ambiente)
 - **GitHub Actions** (CI/CD com matriz de projetos e artefatos)
 
@@ -120,11 +130,19 @@ npm run test:mobile
 
 ---
 
-## 10. Geração e abertura do relatório
+## 10. Relatório e evidências
 
-Toda execução gera automaticamente:
-- **Relatório HTML** em `playwright-report/`;
-- **Screenshots**, **vídeos** e **traces** em `test-results/` sempre que houver falha (`screenshot: 'only-on-failure'`, `video: 'retain-on-failure'`, `trace: 'retain-on-failure'`).
+Toda execução gera um **relatório HTML** (`playwright-report/`). Em cada teste, o relatório mostra:
+
+| Evidência | Quando | Onde é configurada |
+|---|---|---|
+| Passos do teste (`test.step`) com o tempo de cada um | Sempre | Specs |
+| **Print do estado validado** (ex.: `evidencia-tabela-apos-exclusao`, `evidencia-cadastro-sucesso`, `evidencia-menu-mobile-aberto`) | Sempre, logo depois das asserções do passo | `src/utils/evidence.ts` |
+| Screenshot do fim do teste | Sempre | `playwright.config.ts` (`screenshot: 'on'`) |
+| **Logs do navegador** (`browser-logs.txt`): erros de console, exceções da página, requisições com falha e respostas HTTP ≥ 400 | Sempre (registra também quando não houve erro) | Fixture automática `browserLogs` em `src/fixtures/test.fixtures.ts` |
+| Auditorias axe-core (`axe-registration-form.json`, `axe-full-page.json`) e anotação com as violações conhecidas | `A11Y-01` | `src/utils/a11y.helper.ts` |
+| Trace (linha do tempo com DOM, rede e console de cada ação) | Sempre no CI; localmente, só em falha | `playwright.config.ts` |
+| Vídeo | Só em falha (é o artefato mais pesado) | `playwright.config.ts` |
 
 Para abrir o relatório HTML localmente:
 
@@ -132,13 +150,11 @@ Para abrir o relatório HTML localmente:
 npm run report
 ```
 
-Para inspecionar um trace salvo após falha:
+Para inspecionar um trace salvo após falha (ou qualquer trace, pelo próprio relatório):
 
 ```bash
 npx playwright show-trace test-results/<pasta-do-teste>/trace.zip
 ```
-
-O teste `A11Y-01` anexa ao relatório os resultados do `axe-core` (`axe-registration-form.json` e `axe-full-page.json`) e uma anotação com as violações conhecidas da aplicação.
 
 ### Pipeline (GitHub Actions)
 
@@ -149,7 +165,13 @@ O workflow [`.github/workflows/tests.yml`](./.github/workflows/tests.yml) roda e
 3. **`e2e-tests`** — um job por projeto, em paralelo (`fail-fast: false`), com cache de dependências npm e dos navegadores Playwright, e filtro opcional por tag.
 4. **`merge-reports`** — junta os relatórios `blob` de todos os projetos em um único HTML (`playwright-report-merged`) e publica um resumo (passaram, falharam, flaky) na página da execução.
 
-Os artefatos `playwright-report-<projeto>`, `test-results-<projeto>` (trace, vídeo e screenshot das falhas) e o relatório consolidado são publicados mesmo quando há falha (`if: !cancelled()`).
+Artefatos publicados em cada execução:
+
+- **`playwright-report-merged`** — relatório HTML único dos 3 projetos, com todas as evidências da tabela acima (retenção de 30 dias). Para abrir: baixar, descompactar e rodar `npx playwright show-report <pasta>`.
+- **`test-results-<projeto>`** — só quando há falha: arquivos brutos de trace, vídeo e screenshot, para abrir direto com `show-trace` (30 dias).
+- **Resumo da execução** na página do run (passaram, falharam, instáveis, ignorados).
+
+O relatório consolidado é publicado mesmo quando há falha (`if: !cancelled()`). Não há um relatório HTML por projeto: ele repetiria o consolidado e, com trace ligado no CI, multiplicaria o espaço de armazenamento usado.
 
 ---
 
@@ -167,7 +189,7 @@ front-web-qa-challenge/
 │   ├── data/
 │   │   └── userData.factory.ts  # Factories e constantes de massa fictícia controlada
 │   ├── fixtures/
-│   │   └── test.fixtures.ts     # Custom fixtures injetando Page Objects nos testes
+│   │   └── test.fixtures.ts     # Page Objects injetados nos testes + fixture automática de logs do navegador
 │   ├── pages/
 │   │   ├── BasePage.ts
 │   │   ├── UsersTablePage.ts
@@ -176,7 +198,8 @@ front-web-qa-challenge/
 │   │   ├── AccessibilityPage.ts
 │   │   └── ResponsivePage.ts
 │   └── utils/
-│       └── a11y.helper.ts       # Wrapper do axe-core com anexo automático no relatório HTML
+│       ├── a11y.helper.ts       # Wrapper do axe-core com anexo automático no relatório HTML
+│       └── evidence.ts          # Anexa ao relatório o print do estado validado
 ├── tests/
 │   ├── users/                   # Jornada principal e cenário negativo da Tabela de Usuários
 │   ├── forms/                   # Registration Form: caminho feliz com reset e validações negativas
@@ -195,7 +218,7 @@ front-web-qa-challenge/
 - **`src/pages/`:** encapsula seletores e ações orientadas à intenção do negócio, mantendo as asserções visíveis nos arquivos `*.spec.ts`.
 - **`src/fixtures/`:** injeta Page Objects via `test.extend`, eliminando boilerplate de instanciação repetitiva.
 - **`src/data/`:** centraliza factories de dados fictícios e sementes conhecidas, evitando acoplamento a dados reais ou estado compartilhado.
-- **`src/utils/`:** concentra utilitários transversais (como a execução e anexo de relatório do `axe-core`).
+- **`src/utils/`:** concentra utilitários transversais (auditoria `axe-core` e prints de evidência).
 
 ---
 
@@ -204,7 +227,7 @@ front-web-qa-challenge/
 Hierarquia adotada para maximizar resiliência e aproximar o teste do comportamento real do usuário:
 
 1. **Prioridade 1 — Seletores semânticos:** `getByRole`, `getByLabel`, `getByPlaceholder`, `getByText` (ex.: campos do Registration Form, menu hambúrguer `Toggle menu`, botões do Focus Trap). Os labels do formulário usam regex ancorada (`/^Password/`) porque `/Password/i` também casaria com o botão `Toggle password visibility` e causaria *strict mode violation*.
-2. **Prioridade 2 — Contrato explícito (`getByTestId`):** usado quando o componente não possui nome acessível confiável (ex.: `#rowsPerPage`, `#tableFilter` e botões de ação da Tabela de Usuários, cuja falta de label foi identificada como defeito crítico de acessibilidade na auditoria `axe-core`).
+2. **Prioridade 2 — Contrato explícito (`getByTestId`):** usado quando o componente não possui nome acessível confiável (ex.: o seletor de linhas por página `#rowsPerPage` e os botões de ação da Tabela de Usuários, cuja falta de label foi identificada como defeito crítico de acessibilidade na auditoria `axe-core`).
 3. **Proibido no projeto:** XPath absoluto, seletores acoplados a classes puramente visuais e índices posicionais fixos (`nth-child`). Na leitura de colunas de tabelas, o índice é resolvido dinamicamente a partir do texto do cabeçalho (`<thead>`), tanto na Tabela de Usuários (`getCell(row, 'Status')`) quanto na Dynamic Table.
 
 ---
@@ -233,7 +256,10 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
 
 - **Playwright + TypeScript:** escolhido por oferecer auto-waiting nativo, execução multi-engine (Chromium/WebKit) sem drivers externos, Trace Viewer rico para diagnóstico e tipagem estrita.
 - **Chromium completo + WebKit `@smoke` + Mobile Safari `@mobile`:** trade-off consciente que entrega validação cross-engine e mobile iOS mantendo o tempo de CI enxuto e respeitando a restrição de não sobrecarregar a aplicação com paralelismo excessivo (`workers: 2` em CI).
-- **O que não automatizar em E2E:** combinações exaustivas de regras de campo (melhor cobertas em testes unitários/componente), chamadas reais a APIs de terceiros sem mock (`jsonplaceholder`), seções secundárias fora do domínio administrativo (Shopping, Media, Carousel) e validações manuais de tecnologia assistiva.
+- **Seleção dos cenários:** 5 testes de núcleo (um por item obrigatório do enunciado) e 3 complementares para os maiores riscos restantes — ver a seção 3.
+- **O que não automatizar em E2E:** combinações exaustivas de regras de campo (melhor cobertas em testes unitários/componente), regras garantidas pelo próprio HTML (`disabled`, `maxlength`), chamadas reais a APIs de terceiros sem mock (`jsonplaceholder`), seções secundárias fora do domínio administrativo (Shopping, Media, Carousel) e validações manuais de tecnologia assistiva.
+- **Gate de acessibilidade só em violação crítica, e só no formulário:** a aplicação já tem violações na tabela e no contraste. Barrar tudo deixaria a suíte sempre vermelha; ignorar esconderia os problemas. A auditoria da página inteira vai para o relatório como evidência.
+- **Evidência mesmo quando o teste passa:** um relatório verde sem prints não mostra o que foi validado. Cada teste anexa o estado final; o trace fica ligado no CI para que qualquer execução possa ser inspecionada (inclusive para explicar um trace na apresentação).
 
 ---
 
@@ -247,6 +273,7 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
   - Violações críticas de acessibilidade detectadas pelo `axe-core` na tabela de usuários (`select-name`, `label`, `button-name`) e violação séria `label-content-name-mismatch` na seção `#a11y`.
   - O container com scroll horizontal da tabela não é focável por teclado (`scrollable-region-focusable`), e o menu hambúrguer não expõe `aria-expanded` ao abrir/fechar (`RSK-A07`, `RSK-A08`).
 - **Limitações da análise automatizada de acessibilidade (`axe-core`):** cobre estruturalmente regras detectáveis no DOM (~30–50% dos critérios WCAG), mas **não substitui** testes manuais com leitores de tela (VoiceOver/NVDA), verificação de clareza semântica, zoom 200% e operação assistiva por voz.
+  - Exemplo concreto, comprovado por mutação: removendo o `for` do label de e-mail, o axe **não acusou nada**, porque aceita o `placeholder` do campo como nome acessível. Por isso o `A11Y-01` verifica a associação de labels explicitamente.
 
 ---
 
@@ -265,6 +292,8 @@ Em conformidade com a transparência solicitada no desafio:
   - O seletor `getByLabel(/Password/i)` encontrava 2 elementos (campo + botão `Toggle password visibility`). Ainda não havia teste usando o seletor, então o erro passou despercebido — esta seção afirmava antes que "todos os seletores foram comprovados", o que não era verdade.
   - O workflow usava `matrix` no `if` de um job, o que o GitHub Actions não permite; a matriz passou a ser montada num job `plan`.
   - A documentação descrevia como "Coberto" cenários que ainda não existiam.
+  - Ao enxugar o `A11Y-01`, a IA propôs remover a checagem manual de labels por considerá-la redundante com o axe. O teste de mutação (remover o `for` de um label) mostrou que o axe não detecta o problema quando o campo tem placeholder; a checagem foi mantida.
+  - A configuração inicial só gerava screenshot e trace em falha: uma execução verde não deixava evidência visual do que foi validado. Passou a anexar um print do estado final em todo teste.
 - **Outros ajustes:** durante o setup inicial, o TypeScript 7 rejeitou opções legadas (`moduleResolution: "Node"` e `baseUrl`), exigindo ajuste para `module: "ESNext"` + `moduleResolution: "Bundler"` e paths relativos; além disso, a varredura `axe-core` revelou que a aplicação possui violações pré-existentes, levando à decisão de bloquear apenas violações críticas no formulário e anexar o diagnóstico completo da página como evidência.
 - **Decisões técnicas autorais:** escolha da estrutura em repositório isolado, estratégia multi-engine (`Chromium` completo + `WebKit` `@smoke` + `iPhone 13` `@mobile`), priorização dos 8 cenários, decisão de bloquear apenas violações críticas de acessibilidade, de não afirmar aleatoriedade na Dynamic Table e organização incremental de commits por domínio.
 
