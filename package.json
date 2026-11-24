@@ -1,0 +1,29 @@
+{
+  "name": "front-web-qa-challenge",
+  "version": "1.0.0",
+  "description": "Case Técnico — Engenharia de Qualidade Front Web (PlayLab — Playwright Practice Arena)",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:chromium": "playwright test --project=chromium",
+    "test:webkit": "playwright test --project=webkit",
+    "test:mobile": "playwright test --project=mobile-safari",
+    "test:smoke": "playwright test --grep @smoke",
+    "test:users": "playwright test --grep @users",
+    "test:forms": "playwright test --grep @forms",
+    "test:dynamic": "playwright test --grep @dynamic",
+    "test:a11y": "playwright test --grep @a11y",
+    "test:responsive": "playwright test --grep @mobile",
+    "report": "playwright show-report",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.1",
+    "@types/node": "^26.6.6",
+    "dotenv": "^18.0.10",
+    "typescript": "^7.0.2"
+  }
+}
