@@ -205,6 +205,8 @@ O relatório consolidado é publicado mesmo quando há falha (`if: !cancelled()`
 
 Prints tirados do relatório consolidado de uma execução real da pipeline ([execução 45472283352](https://github.com/felipecassinrosa/front-web-qa-challenge/actions/runs/45472283352): 13 de 13 aprovados, nenhum instável). Ficam versionados em [`docs/evidencias/`](./docs/evidencias/) para não depender da validade do artefato.
 
+Depois dessa execução, os testes `DYN-ASYNC-01` e `DYN-TBL-01` passaram a controlar o relógio e o sorteio (seção 13), e o título do `DYN-TBL-01` mudou. A execução mais recente, com 13 de 13 aprovados e nenhum instável, é a [45681741606](https://github.com/felipecassinrosa/front-web-qa-challenge/actions/runs/45681741606).
+
 **Relatório consolidado** — os 8 testes nos 3 projetos, com as tags de cada um:
 
 <img src="docs/evidencias/relatorio-resumo.png" alt="Relatório HTML consolidado: 13 execuções, 13 aprovadas, nenhuma falha ou instável" width="760">
