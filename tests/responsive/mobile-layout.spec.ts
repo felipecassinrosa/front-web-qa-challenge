@@ -10,7 +10,9 @@ test.describe('Responsividade — layout em resolução mobile', () => {
       await responsive.openSection();
 
       await test.step('Validar ausência de scroll horizontal no documento (RSP-04)', async () => {
-        expect(await responsive.hasHorizontalOverflow()).toBe(false);
+        // expect.poll repete a leitura até passar: o layout pode levar um instante para assentar
+        // (fontes, imagens), e uma leitura única reprovaria por um estado transitório.
+        await expect.poll(() => responsive.hasHorizontalOverflow(), 'Documento sem scroll horizontal').toBe(false);
       });
 
       await test.step('Abrir o menu hambúrguer e acessar os links de navegação (RSP-05)', async () => {
@@ -72,7 +74,7 @@ test.describe('Responsividade — layout em resolução mobile', () => {
         await expect(usersTablePage.tableInfo).toContainText(
           `of ${USERS_TABLE_SEED.initialTotalEntries - 1} entries`,
         );
-        expect(await responsive.hasHorizontalOverflow()).toBe(false);
+        await expect.poll(() => responsive.hasHorizontalOverflow(), 'Sem scroll horizontal após a exclusão').toBe(false);
       });
     },
   );
