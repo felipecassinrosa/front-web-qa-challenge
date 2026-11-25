@@ -27,7 +27,7 @@ export default defineConfig({
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
   // No CI, o paralelismo é entre jobs: cada projeto roda num runner separado. Dentro do job,
-  // 1 worker. Medido: com 2 workers no runner de 2 vCPUs (repo privado), o WebKit levou de
+  // 1 worker. Medido: com 2 workers no runner de 2 vCPUs (repo ainda privado), o WebKit levou de
   // 27 a 40 s no FRM-E2E-01, que falhou na 1ª tentativa em 3 de 4 execuções; o mesmo teste
   // rodando sozinho (no retry) levou ~14 s. Localmente, 3 workers.
   workers: isCI ? 1 : 3,

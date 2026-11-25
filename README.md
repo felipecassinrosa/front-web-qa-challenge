@@ -9,6 +9,32 @@ A documentação estratégica completa está em:
 - [docs/matriz-de-riscos.md](./docs/matriz-de-riscos.md)
 - [docs/matriz-de-cenarios.md](./docs/matriz-de-cenarios.md)
 
+### Início rápido
+
+Precisa de Node.js 20 ou mais novo e acesso à internet (a aplicação-alvo é o site público do PlayLab).
+
+```bash
+npm ci                                  # 1. instala as dependências
+npx playwright install chromium webkit  # 2. baixa os navegadores
+npm test                                # 3. roda os 8 testes (13 execuções em 3 projetos)
+npm run report                          # 4. abre o relatório HTML com passos, prints e logs
+```
+
+Para rodar só um teste: `npx playwright test --grep "DYN-ASYNC-01"`. Todos os comandos estão na [seção 7](#7-instruções-de-execução).
+
+### Por que estas escolhas, em resumo
+
+| Escolha | Por quê |
+|---|---|
+| 8 testes: 5 de núcleo e 3 complementares | O enunciado pede de 5 a 8, escolhidos por risco. Cada item obrigatório tem um teste, e os 3 restantes cobrem riscos que ficariam de fora. O que não foi automatizado está justificado na [matriz de cenários](./docs/matriz-de-cenarios.md) |
+| Chromium completo, WebKit só `@smoke`, iPhone 13 só `@mobile` | Cobre dois motores e o mobile sem triplicar o tempo da pipeline nem sobrecarregar o site público |
+| Seletores por papel e label; `data-testid` só quando não há nome acessível | Resiste a mudanças de layout. Onde a página não oferece nome acessível, o `data-testid` é um contrato explícito |
+| Sem `waitForTimeout`; relógio e sorteio controlados onde decidem o resultado | A espera é por estado observável. Nos dois casos em que o tempo ou o sorteio mudariam o resultado, o teste os controla em vez de torcer para dar certo |
+| Acessibilidade: barra só violação crítica, e só no formulário | O site já tem violações. Barrar tudo deixaria a suíte sempre vermelha; ignorar esconderia o problema. A página inteira vai para o relatório como evidência |
+| Print em todo teste, trace só em falha | Um relatório verde sem prints não mostra o que foi validado. Trace de tudo pesaria na cota de artefatos |
+
+Os detalhes de cada decisão estão nas seções [3](#3-escopo-implementado) e [15](#15-decisões-técnicas).
+
 ---
 
 ## 2. Aplicação utilizada
@@ -137,7 +163,7 @@ Toda execução gera um **relatório HTML** (`playwright-report/`). Em cada test
 | Evidência | Quando | Onde é configurada |
 |---|---|---|
 | Passos do teste (`test.step`) com o tempo de cada um | Sempre | Specs |
-| **Print do estado validado** (ex.: `evidencia-tabela-apos-exclusao`, `evidencia-cadastro-sucesso`, `evidencia-menu-mobile-aberto`) | Sempre, logo depois das asserções do passo. Se o print do componente não sair em 5 s, registra a tela visível com uma nota: a evidência nunca reprova o teste. No print de componente, a barra de navegação e o banner de cookies (fixos) são ocultados, porque apareceriam fora do lugar, no meio da imagem | `src/utils/evidence.ts` |
+| **Print do estado validado** (ex.: `evidencia-tabela-apos-exclusao`, `evidencia-cadastro-sucesso`, `evidencia-menu-mobile-aberto`) | Sempre, logo depois das asserções do passo. Se o print do componente não sair em 3 s, registra a tela visível com uma nota: a evidência nunca reprova o teste. No print de componente, a barra de navegação e o banner de cookies (fixos) são ocultados, porque apareceriam fora do lugar, no meio da imagem | `src/utils/evidence.ts` |
 | Screenshot do fim do teste | Sempre | `playwright.config.ts` (`screenshot: 'on'`) |
 | **Logs do navegador** (`browser-logs.txt`): erros de console, exceções da página, requisições com falha e respostas HTTP ≥ 400 | Sempre (registra também quando não houve erro) | Fixture automática `browserLogs` em `src/fixtures/test.fixtures.ts` |
 | Auditorias axe-core (`axe-registration-form.json`, `axe-full-page.json`) e anotação com as violações conhecidas | `A11Y-01` | `src/utils/a11y.helper.ts` |
@@ -275,12 +301,15 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
 - Uso exclusivo de **auto-waiting** do Playwright e **web-first assertions** (`toBeVisible`, `toBeEnabled`, `toBeHidden`, `toHaveCount`, `toContainText`).
 - **Zero `waitForTimeout`:** fluxos assíncronos (como o *Delayed Dropdown* de 2s) sincronizam pela transição de estados observáveis (exibição/ocultação do loader e habilitação do `<select>`).
 - **Leituras em lote só depois de um estado confirmado:** antes de ler uma coluna inteira (`getColumnValues`, `readDynamicTableRecords`), o teste espera a contagem de linhas com `toHaveCount`, para não ler a tabela no meio de uma atualização.
-- **Sem asserções sobre aleatoriedade:** a Dynamic Table embaralha colunas e linhas a cada carga, mas o teste não exige que a ordem mude após o reload (o sorteio pode repetir a ordem e geraria falha intermitente). Ele valida as regras que não mudam: fruta → cor/estação e faixas numéricas.
-- **Verificação de estabilidade:** a suíte foi executada com `--repeat-each=3` (39/39 aprovados) antes da entrega.
+- **Tempo e sorteio controlados só onde importa:**
+  - `DYN-ASYNC-01`: o relógio da página fica congelado (`page.clock`) e o teste o avança. O estado "carregando" não depende da velocidade da máquina. Só `clock.install()` não basta: sem `pauseAt` o tempo continua correndo (medido: o loader sumia sozinho em 3 s).
+  - `DYN-TBL-01`: o `Math.random` é fixado antes da página carregar, e o teste compara duas cargas com layouts de fato diferentes, em vez de torcer para o sorteio mudar a ordem. Ele valida as regras que não mudam: fruta → cor/estação e faixas numéricas.
+  - Nos dois, a espera continua sendo por estado observável. Nenhum `waitForTimeout`.
+- **Verificação de estabilidade:** a suíte foi executada com `--repeat-each=5` nos 3 projetos (65/65 aprovados) antes da entrega.
 - **Instabilidade real encontrada no CI e corrigida:** o `FRM-E2E-01` falhou na 1ª tentativa no WebKit (desktop e iPhone) em 3 de 4 execuções e passou no retry. A investigação usou os traces das tentativas que falharam e as durações registradas no relatório:
   - as ações que exigem elemento estável (`check`, `click`, print de elemento) levavam de 2 a 7 s; os `fill`, menos de 0,3 s;
   - a hipótese de o banner de cookies cobrir os botões foi testada e descartada: os logs não mostram nenhuma nova tentativa por elemento coberto;
-  - o mesmo teste levava de 27 a 40 s na 1ª tentativa e ~14 s no retry, que roda quase sozinho. A causa era disputa de CPU: 2 workers WebKit gravando vídeo e screencast num runner de 2 vCPUs (repositório privado — confirmado no log do job).
+  - o mesmo teste levava de 27 a 40 s na 1ª tentativa e ~14 s no retry, que roda quase sozinho. A causa era disputa de CPU: 2 workers WebKit gravando vídeo e screencast num runner de 2 vCPUs (o repositório era privado na época, confirmado no log do job; runners de repositório público costumam ter mais CPU).
 
   Correções: 1 worker por job no CI (o paralelismo já acontece entre os jobs de cada navegador), vídeo só no retry e evidência com tempo-limite próprio, que nunca reprova o teste. Na execução seguinte, os 13 testes passaram de primeira, com o `FRM-E2E-01` em ~13 s no WebKit.
 - Timeouts globais configurados centralmente em `playwright.config.ts` (`timeout: 30s`, `expect: 10s`, `actionTimeout: 10s`). No CI, os projetos WebKit têm 45 s por teste: lá o WebKit é de 2 a 3 vezes mais lento que o Chromium (até 19,6 s no `FRM-E2E-01` do iPhone, contra ~4 s no Chromium). Os limites de ação e de asserção não mudam, então um travamento real continua sendo pego.
@@ -303,7 +332,7 @@ Hierarquia adotada para maximizar resiliência e aproximar o teste do comportame
 - **Seleção dos cenários:** 5 testes de núcleo (um por item obrigatório do enunciado) e 3 complementares para os maiores riscos restantes — ver a seção 3.
 - **O que não automatizar em E2E:** combinações exaustivas de regras de campo (melhor cobertas em testes unitários/componente), regras garantidas pelo próprio HTML (`disabled`, `maxlength`), chamadas reais a APIs de terceiros sem mock (`jsonplaceholder`), seções secundárias fora do domínio administrativo (Shopping, Media, Carousel) e validações manuais de tecnologia assistiva.
 - **Gate de acessibilidade só em violação crítica, e só no formulário:** a aplicação já tem violações na tabela e no contraste. Barrar tudo deixaria a suíte sempre vermelha; ignorar esconderia os problemas. A auditoria da página inteira vai para o relatório como evidência.
-- **Evidência mesmo quando o teste passa:** um relatório verde sem prints não mostra o que foi validado. Cada teste anexa o estado final. O trace fica só para falhas por padrão: com trace de todos os testes, cada execução gerava ~36 MB de artefato, o que esgotaria rápido a cota de um repositório privado. O disparo manual com `trace: on` grava de todos (útil para explicar um trace na apresentação).
+- **Evidência mesmo quando o teste passa:** um relatório verde sem prints não mostra o que foi validado. Cada teste anexa o estado final. O trace fica só para falhas por padrão: com trace de todos os testes, cada execução gerava ~36 MB de artefato, o que pesaria na cota de armazenamento de artefatos. O disparo manual com `trace: on` grava de todos (útil para explicar um trace na apresentação).
 
 ---
 
