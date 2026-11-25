@@ -85,7 +85,16 @@ test.describe('Tabela de Usuários — Gerenciamento de Usuários', () => {
 
   test(
     'USR-NEG-01: deve exibir tabela sem registros ao pesquisar por usuário inexistente',
-    { tag: ['@users', '@negative'] },
+    {
+      tag: ['@users', '@negative'],
+      // Aparece no relatório HTML ao lado do teste: ele passa descrevendo o comportamento atual,
+      // que é um defeito conhecido do produto. Se o PlayLab ganhar um estado vazio, revisar o teste.
+      annotation: {
+        type: 'issue',
+        description:
+          'RSK-U01: a busca sem resultado mostra a tabela vazia e "Showing 1-0 of 0 entries", sem mensagem de estado vazio.',
+      },
+    },
     async ({ usersTablePage }) => {
       await test.step('Pesquisar por termo sem correspondência', async () => {
         await usersTablePage.openSection();
