@@ -1,9 +1,9 @@
 import { DYNAMIC_FRUIT_TABLE_RULES } from '@data/userData.factory';
 import { expect, test } from '@fixtures/test.fixtures';
 import { attachEvidence } from '@utils/evidence';
-import type { DynamicTableRecord } from '@pages/DynamicComponentsPage';
+import type { DynamicComponentsPage, DynamicTableRecord } from '@pages/DynamicComponentsPage';
 
-const { expectedColumns, fruits, ranges } = DYNAMIC_FRUIT_TABLE_RULES;
+const { expectedColumns, fruits, ranges, randomValues } = DYNAMIC_FRUIT_TABLE_RULES;
 
 /**
  * Valida cada registro pelas regras de negócio estáveis, sem depender da posição das colunas,
@@ -34,34 +34,47 @@ function expectRecordsToFollowBusinessRules(records: DynamicTableRecord[]): void
   }
 }
 
+/** Lê a tabela pelos cabeçalhos, valida as regras de negócio e devolve o layout encontrado. */
+async function readAndValidateTable(dynamic: DynamicComponentsPage) {
+  // Espera a tabela inteira antes de ler: a leitura em lote não deve pegar a tabela no meio da montagem.
+  await expect(dynamic.dynamicFruitRows).toHaveCount(Object.keys(fruits).length);
+
+  const headers = await dynamic.getDynamicTableHeaders();
+  expect(headers[0], 'A coluna Fruit é a única com posição fixa').toBe('Fruit');
+  expect([...headers].sort()).toEqual([...expectedColumns].sort());
+
+  const records = await dynamic.readDynamicTableRecords();
+  expectRecordsToFollowBusinessRules(records);
+
+  return { headers, fruitOrder: records.map((record) => record['Fruit']) };
+}
+
 test.describe('Componentes Dinâmicos — Dynamic Table', () => {
   test(
-    'DYN-TBL-01: deve ler a tabela pelos cabeçalhos mesmo com colunas e linhas embaralhadas a cada carga',
+    'DYN-TBL-01: deve ler a tabela pelos cabeçalhos quando colunas e linhas mudam de posição após recarregar',
     { tag: ['@dynamic'] },
     async ({ page, dynamicComponentsPage: dynamic }) => {
-      await dynamic.openDynamicTable();
+      // O PlayLab embaralha colunas e linhas com Math.random a cada carga. Em vez de torcer para o
+      // sorteio mudar a ordem, o teste fixa o sorteio: duas cargas com layouts diferentes, sempre.
+      // Assim o teste prova a leitura por cabeçalho (DYN-03) e é reproduzível quando falha.
+      const original = await test.step('Carga 1: sorteio fixado para manter a ordem original', async () => {
+        await dynamic.fixRandomness(randomValues.keepOrder);
+        await dynamic.openDynamicTable();
 
-      await test.step('Validar estrutura e dados da primeira carga', async () => {
-        await expect(dynamic.dynamicFruitRows).toHaveCount(Object.keys(fruits).length);
-
-        const headers = await dynamic.getDynamicTableHeaders();
-        expect(headers[0], 'A coluna Fruit é a única com posição fixa').toBe('Fruit');
-        expect([...headers].sort()).toEqual([...expectedColumns].sort());
-
-        expectRecordsToFollowBusinessRules(await dynamic.readDynamicTableRecords());
+        const layout = await readAndValidateTable(dynamic);
         await attachEvidence('tabela-dinamica-primeira-carga', dynamic.dynamicFruitTable);
+        return layout;
       });
 
-      await test.step('Recarregar a página e validar que as regras continuam válidas', async () => {
+      await test.step('Carga 2: recarregar com o sorteio fixado em outra ordem (DYN-04, DYN-05)', async () => {
+        await dynamic.fixRandomness(randomValues.reorder);
         await page.reload();
-        await expect(dynamic.dynamicFruitRows).toHaveCount(Object.keys(fruits).length);
 
-        const headers = await dynamic.getDynamicTableHeaders();
-        expect([...headers].sort()).toEqual([...expectedColumns].sort());
+        const reordered = await readAndValidateTable(dynamic);
 
-        // Não afirmamos que a ordem mudou: o embaralhamento é aleatório e pode repetir a ordem
-        // anterior, o que tornaria essa asserção instável sem comprovar nenhum comportamento.
-        expectRecordsToFollowBusinessRules(await dynamic.readDynamicTableRecords());
+        // Garante que o teste comparou dois layouts de fato diferentes, e não a mesma tabela duas vezes.
+        expect(reordered.headers, 'Colunas em outra posição após o reload').not.toEqual(original.headers);
+        expect(reordered.fruitOrder, 'Linhas em outra ordem após o reload').not.toEqual(original.fruitOrder);
         await attachEvidence('tabela-dinamica-apos-reload', dynamic.dynamicFruitTable);
       });
     },

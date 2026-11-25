@@ -67,6 +67,8 @@ export const USERS_TABLE_SEED = {
 export const DELAYED_DROPDOWN_SEED = {
   placeholderBeforeLoad: 'Click button to load...',
   loadingText: 'Loading options...',
+  // O componente espera ~2 s. O relógio do teste avança com folga: o teste não depende do valor exato.
+  clockAdvanceMs: 5_000,
   expectedCategories: ['Electronics', 'Clothing', 'Books', 'Sports & Outdoors', 'Home & Garden'],
   categoryToSelect: 'Books',
 };
@@ -76,6 +78,12 @@ export const DELAYED_DROPDOWN_SEED = {
  * são aleatórios a cada carga, mas a relação fruta → cor/estação e as faixas numéricas são fixas.
  */
 export const DYNAMIC_FRUIT_TABLE_RULES = {
+  /**
+   * Valores de `Math.random` que tornam o embaralhamento previsível. O PlayLab embaralha com
+   * Fisher–Yates (`Math.floor(Math.random() * (i + 1))`): perto de 1 nenhum item troca de lugar
+   * (ordem original); com 0 cada item troca com o primeiro (outra ordem). Medido em 25/11/2026.
+   */
+  randomValues: { keepOrder: 0.999999, reorder: 0 },
   expectedColumns: ['Fruit', 'Color', 'Weight (g)', 'Price (₹/kg)', 'Season', 'Stock'],
   fruits: {
     Mango: { color: 'Yellow', season: 'Summer' },
